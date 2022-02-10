@@ -29,7 +29,7 @@ namespace RPC {
 		rpc::client *clt = nullptr;
 		rpc::server *srv = nullptr;
 		Index::conn_t conn;
-		bool isServer;
+		bool isServer = false;
 		int id = -1;
 
 		/**
@@ -39,6 +39,8 @@ namespace RPC {
 
 	public:
 		~Indexer();
+
+		Indexer() {};
 
 		/**
 		 * @brief Create an Indexer Server

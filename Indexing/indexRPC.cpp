@@ -62,23 +62,32 @@ namespace RPC {
 	}
 
 	bool Indexer::registry(string entryName, entryHash_t hash) {
-		auto state = clt->get_connection_state();
+		if (isServer)
+			return false;
 		return clt->call(k_Register, id, conn, entryName, hash).as<bool>();
 	}
 
 	bool Indexer::deregister(entryHash_t hash) {
+		if (isServer)
+			return false;
 		return clt->call(k_Deregister, id, conn, hash).as<bool>();
 	}
 
 	EntryResults Indexer::search(string query) {
+		if (isServer)
+			return Index::search(query);
 		return clt->call(k_Search, query).as<EntryResults>();
 	}
 
 	EntryResults Indexer::list() {
+		if (isServer)
+			return Index::list();
 		return clt->call(k_List).as<EntryResults>();
 	}
 
 	PeerResults Indexer::request(entryHash_t hash) {
+		if (isServer)
+			return Index::request(hash);
 		return clt->call(k_Request, hash).as<PeerResults>();
 	}
 }

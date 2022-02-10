@@ -31,13 +31,12 @@ namespace Util {
 
 	class Folder {
 		std::unordered_map<string, File> files;
-		bool running = true;
 
 	public:
-		void operator()(fs::path path, std::chrono::duration<int, std::milli> delay, const std::function<void(File, File::Status)> &listener);
+		bool running = true;
 
-		void stop();
+		void operator()(fs::path path, std::chrono::duration<int, std::milli> delay, const std::function<void(File, File::Status)> &listener);
 	};
 
-	Folder watchFolder(string path, int delay, const std::function<void(File, File::Status)> &listener);
+	void watchFolder(string path, int delay, const std::function<void(File, File::Status)> &listener);
 }

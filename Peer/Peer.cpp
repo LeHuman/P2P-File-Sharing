@@ -9,7 +9,7 @@ using std::string;
 
 const string ID = "Peer";
 
-void registerFile(RPC::Indexer indexer, string fileName, Index::entryHash_t hash) {
+void registerFile(RPC::Indexer &indexer, string fileName, Index::entryHash_t hash) {
 	bool registered = indexer.registry(fileName, hash);
 	if (registered) {
 		Log.i(ID, "Registered hash: %s", fileName.data());
@@ -18,7 +18,7 @@ void registerFile(RPC::Indexer indexer, string fileName, Index::entryHash_t hash
 	}
 }
 
-void deregisterFile(RPC::Indexer indexer, Index::entryHash_t hash) {
+void deregisterFile(RPC::Indexer &indexer, Index::entryHash_t hash) {
 	bool deregistered = indexer.deregister(hash);
 	if (deregistered) {
 		Log.i(ID, "Deregisted hash: %s", hash.data());
@@ -27,21 +27,23 @@ void deregisterFile(RPC::Indexer indexer, Index::entryHash_t hash) {
 	}
 }
 
-void listener(RPC::Indexer indexer, Util::File file, Util::File::Status status) {
-	if (!std::filesystem::is_regular_file(std::filesystem::path(file.path))) {
+RPC::Indexer *indexer;
+
+void listener(Util::File file, Util::File::Status status) {
+	if (!std::filesystem::is_regular_file(std::filesystem::path(file.path)) && status != Util::File::Status::erased) {
 		return;
 	}
 
 	switch (status) {
 		case Util::File::Status::created:
-			registerFile(indexer, file.path.filename().string(), file.hash);
+			registerFile(*indexer, file.path.filename().string(), file.hash);
 			break;
 		case Util::File::Status::erased:
-			deregisterFile(indexer, file.hash);
+			deregisterFile(*indexer, file.hash);
 			break;
 		case Util::File::Status::modified:
-			deregisterFile(indexer, file.prehash);
-			registerFile(indexer, file.path.filename().string(), file.hash);
+			deregisterFile(*indexer, file.prehash);
+			registerFile(*indexer, file.path.filename().string(), file.hash);
 			break;
 		default:
 			Log.e(ID, "Unknown file status: %s", file.path.filename().string().data());
@@ -52,9 +54,12 @@ int main() {
 	srand((unsigned int)time(NULL));
 
 	RPC::Indexer c = RPC::Indexer(rand(), "localhost", 55555);
-	Util::Folder fileFolder = Util::watchFolder("testFolder", 5000, std::bind(listener, c, std::placeholders::_1, std::placeholders::_2));
+
+	indexer = &c;
 
 	c.start();
+
+	Util::watchFolder("../../../../testFolder", 1000, listener);
 
 	Console::run(c);
 

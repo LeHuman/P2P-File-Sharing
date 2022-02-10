@@ -51,13 +51,20 @@ namespace Util {
 		}
 	}
 
-	void Folder::stop() {
-		running = false;
+	std::thread *current = nullptr;
+
+	void watchFolder(string path, int delay, const std::function<void(File, File::Status)> &listener) {
+		if (current != nullptr) {
+			Log.w("Folder", "Already watching a folder");
+			return;
+		}
+		Folder fld = Folder();
+		current = new std::thread(fld, path, std::chrono::duration<int, std::milli>(delay), listener);
 	}
 
-	Folder watchFolder(string path, int delay, const std::function<void(File, File::Status)> &listener) {
-		Folder fld = Folder();
-		std::thread thread_object(fld, path, std::chrono::duration<int, std::milli>(delay), listener);
-		return fld;
+	void stopFolder() {
+		if (current != nullptr) {
+			delete current;
+		}
 	}
 }
