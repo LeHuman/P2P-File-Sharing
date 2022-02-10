@@ -1,5 +1,6 @@
 #pragma once
 
+#include <vector>
 #include <string>
 
 #include "rpc/server.h"
@@ -9,11 +10,20 @@
 #include "index.h"
 
 namespace RPC {
+	using std::vector;
 	using std::string;
 	using std::chrono::milliseconds;
 	using Index::conn_t;
 	using Index::EntryResults;
 	using Index::PeerResults;
+	using Index::entryHash_t;
+
+	const string k_Register = "register";
+	const string k_Deregister = "deregister";
+	const string k_Search = "search";
+	const string k_List = "list";
+	const string k_Request = "request";
+	const string k_Ping = "ping";
 
 	class Indexer {
 		rpc::client *clt = nullptr;

@@ -1,13 +1,6 @@
 #include "indexRPC.h"
 
 namespace RPC {
-	static const string k_Register = "Register";
-	static const string k_Deregister = "Deregister";
-	static const string k_Search = "Search";
-	static const string k_List = "List";
-	static const string k_Request = "Request";
-	static const string k_Ping = "Ping";
-
 	Indexer::~Indexer() {
 		if (srv != nullptr)
 			delete srv;
@@ -67,6 +60,7 @@ namespace RPC {
 	}
 
 	bool Indexer::registry(string entryName, entryHash_t hash) {
+		auto state = clt->get_connection_state();
 		return clt->call(k_Register, id, conn, entryName, hash).as<bool>();
 	}
 

@@ -16,3 +16,9 @@ add_subdirectory("Util")
 add_subdirectory("Indexing")
 
 add_subdirectory("rpclib")
+
+add_subdirectory("Peer")
+
+add_subdirectory("Server")
+
+add_subdirectory("Console")

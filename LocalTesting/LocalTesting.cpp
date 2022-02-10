@@ -35,13 +35,13 @@ string rnd_names[] = {
 };
 
 Index::conn_t connections[] = {
-	Index::conn_t("namer", 165),
-	Index::conn_t("whah",453),
-	Index::conn_t("amogus",231),
-	Index::conn_t("yaboi",6784),
-	Index::conn_t("hijabi",4532),
-	Index::conn_t("fugna123",210),
-	Index::conn_t("789456123",490),
+	Index::conn_t("1.56.11.5", 165),
+	Index::conn_t("1.5615.1.5.1",453),
+	Index::conn_t("1.65.16.51.6.",231),
+	Index::conn_t("416.5.1.65",6784),
+	Index::conn_t("154.641.6.5",4532),
+	Index::conn_t("416.1465.146.53",210),
+	Index::conn_t("192.168.1.42",490),
 };
 
 std::uniform_int_distribution<std::mt19937::result_type> rndN(0, 6);
@@ -87,13 +87,20 @@ void tieredThreadTest() {
 	}
 }
 
+#include "Console.h"
+
 int main() {
 	//tieredThreadTest();
+	threadedTest();
+	threadedTest();
+	threadedTest();
+	threadedTest();
+
 	RPC::Indexer s(55555);
-	RPC::Indexer c(1, "localhost", 55555);
+	RPC::Indexer c(456978, "localhost", 55555);
 
 	s.start();
 	c.start();
 
-	std::cin.ignore();
+	Console::run(c);
 }

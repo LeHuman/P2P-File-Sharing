@@ -6,8 +6,8 @@ cmake_minimum_required (VERSION 3.8)
 # Add source to this project's executable.
 add_executable (LocalTesting "LocalTesting.cpp" )
 
-target_link_libraries(LocalTesting "Util" "Indexing")
+target_link_libraries(LocalTesting "Util" "Indexing" "Console")
 
-target_include_directories(LocalTesting PRIVATE "${PROJECT_SOURCE_DIR}/Util" "${PROJECT_SOURCE_DIR}/Indexing")
+target_include_directories(LocalTesting PRIVATE "${PROJECT_SOURCE_DIR}/Util" "${PROJECT_SOURCE_DIR}/Indexing" "${PROJECT_SOURCE_DIR}/Console")
 
 # TODO: Add tests and install targets if needed.

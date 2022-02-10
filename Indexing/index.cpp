@@ -177,6 +177,18 @@ namespace Index {
 		throw std::runtime_error("Failed to get current date as string");
 	}
 
+	string Entry::searchEntry::str() {
+		std::ostringstream ss;
+		ss << "Hash: " << hash << "\nAdded on " << firstIndexedString() << "\n\tName: " << name << "\n\tPeers: " << peers;
+		return ss.str();
+	}
+
+	string Peer::searchEntry::str() {
+		std::ostringstream ss;
+		ss << "[" << id << "] " << connInfo.ip << ":" << connInfo.port;
+		return ss.str();
+	}
+
 	EntryResults list() {
 		EntryResults results;
 
@@ -184,7 +196,7 @@ namespace Index {
 		for (pair<entryHash_t, Entry *> entry : entries) {
 			string name = entry.second->name;
 			string hash = entry.second->hash;
-			results.emplace_back(hash, name, entry.second->firstIndexed, entry.second->refrenceCount());
+			results.emplace_back(hash, name, entry.second->refrenceCount(), entry.second->firstIndexed);
 		}
 		mutex.unlock();
 
@@ -206,7 +218,7 @@ namespace Index {
 			if (lowerName.find(search_v) != string::npos) {
 				string name = entry.second->name;
 				string hash = entry.second->hash;
-				results.emplace_back(hash, name, entry.second->firstIndexed, entry.second->refrenceCount());
+				results.emplace_back(hash, name, entry.second->refrenceCount(), entry.second->firstIndexed);
 			}
 		}
 		mutex.unlock();

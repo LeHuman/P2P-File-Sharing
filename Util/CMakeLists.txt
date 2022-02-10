@@ -1,1 +1,1 @@
-﻿add_library(Util STATIC    "Log.h" "Log.cpp"  )
+﻿add_library(Util STATIC    "Log.h" "Log.cpp"     )

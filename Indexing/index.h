@@ -8,14 +8,14 @@
 
 #include "rpc/server.h"
 
-typedef std::string entryHash_t;
-
 namespace Index {
 	using std::string;
 	using std::pair;
 	using std::vector;
 	using std::mutex;
 	using std::unordered_set;
+
+	using entryHash_t = std::string;
 
 	struct conn_t {
 		string ip;
@@ -83,6 +83,7 @@ namespace Index {
 			MSGPACK_DEFINE_ARRAY(hash, name, peers, firstIndexed);
 
 			string firstIndexedString();
+			string str();
 		};
 
 		Entry(string name, entryHash_t hash) {
@@ -105,6 +106,8 @@ namespace Index {
 			conn_t connInfo;
 
 			MSGPACK_DEFINE_ARRAY(id, connInfo);
+
+			string str();
 		};
 
 		Peer(int id, conn_t connInfo) {
