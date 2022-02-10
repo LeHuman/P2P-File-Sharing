@@ -1,3 +1,5 @@
+#include <thread>
+
 #include "indexRPC.h"
 
 namespace RPC {
@@ -40,7 +42,7 @@ namespace RPC {
 	void Indexer::start() {
 		if (isServer) {
 			Log.i("Indexer", "Running Server");
-			srv->async_run(8);
+			srv->async_run(std::thread::hardware_concurrency());
 		} else {
 			Log.i("Indexer", "Running Client");
 			clt = new rpc::client(conn.ip, conn.port);

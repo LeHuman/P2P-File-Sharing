@@ -1,3 +1,6 @@
 [submodule "rpclib"]
 	path = rpclib
 	url = https://github.com/rpclib/rpclib
+[submodule "PicoSHA2"]
+	path = PicoSHA2
+	url = https://github.com/LeHuman/PicoSHA2

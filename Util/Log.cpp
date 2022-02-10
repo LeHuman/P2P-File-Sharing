@@ -1,3 +1,3 @@
 #include "Log.h"
 
-struct Logging::Log_t Log;
+struct Util::Logging::Log_t Log;

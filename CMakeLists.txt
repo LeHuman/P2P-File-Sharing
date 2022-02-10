@@ -22,3 +22,5 @@ add_subdirectory("Peer")
 add_subdirectory("Server")
 
 add_subdirectory("Console")
+
+add_subdirectory("PicoSHA2")
