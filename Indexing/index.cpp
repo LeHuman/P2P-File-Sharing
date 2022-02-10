@@ -192,6 +192,8 @@ namespace Index {
 	EntryResults list() {
 		EntryResults results;
 
+		Log("List", "Listing all files entries");
+
 		mutex.lock(); // TODO: lock individual Entry mutex instead, must consider entry being deleted
 		for (pair<entryHash_t, Entry *> entry : entries) {
 			string name = entry.second->name;
@@ -205,6 +207,8 @@ namespace Index {
 
 	EntryResults search(string query) {
 		EntryResults results;
+
+		Log("Search", "Searching for query: %s", query.data());
 
 		string search_v(query);
 
@@ -232,6 +236,8 @@ namespace Index {
 
 	PeerResults request(entryHash_t hash) {
 		PeerResults results;
+
+		Log("Request", "Searching for hash: %s", hash.data());
 
 		mutex.lock();
 		unordered_map<entryHash_t, Entry *>::const_iterator got = entries.find(hash);
