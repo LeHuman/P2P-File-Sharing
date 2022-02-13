@@ -6,8 +6,8 @@ cmake_minimum_required (VERSION 3.8)
 # Add source to this project's executable.
 add_executable (LocalTesting "LocalTesting.cpp" )
 
-target_link_libraries(LocalTesting "Util" "Indexing" "Console" asio::asio)
+target_link_libraries(LocalTesting "Util" "Indexing" "Console" asio::asio "Exchanger")
 
-target_include_directories(LocalTesting PRIVATE "${PROJECT_SOURCE_DIR}/Util" "${PROJECT_SOURCE_DIR}/Indexing" "${PROJECT_SOURCE_DIR}/Console" "${PROJECT_SOURCE_DIR}/asio")
+target_include_directories(LocalTesting PRIVATE "${PROJECT_SOURCE_DIR}/Util" "${PROJECT_SOURCE_DIR}/Indexing" "${PROJECT_SOURCE_DIR}/Console" "${PROJECT_SOURCE_DIR}/asio" "${PROJECT_SOURCE_DIR}/Exchanger")
 
 # TODO: Add tests and install targets if needed.

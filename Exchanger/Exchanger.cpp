@@ -12,7 +12,14 @@
 #include <string>
 #include <queue>
 
-#include <asio/include/asio.hpp>
+#include <co_spawn.hpp>
+#include <asio/read.hpp>
+#include <asio/write.hpp>
+#include <asio/ip/tcp.hpp>
+#include <asio/connect.hpp>
+#include <asio/detached.hpp>
+#include <asio/awaitable.hpp>
+#include <asio/signal_set.hpp>
 
 #include "Exchanger.h"
 #include "Log.h"

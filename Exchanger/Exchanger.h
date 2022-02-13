@@ -15,5 +15,5 @@ namespace Exchanger {
 
 	void connect(Index::conn_t conn, entryHash_t hash);
 
-	void connect(string ip, uint16_t port, Index::entryHash_t hash);
+	void connect(string ip, uint16_t port, entryHash_t hash);
 }

@@ -8,6 +8,10 @@ project ("P2P File Sharing")
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
+if (UNIX)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -pthread")
+endif (UNIX)
+
 # Include sub-projects.
 add_subdirectory ("LocalTesting")
 
@@ -25,6 +29,6 @@ add_subdirectory("Console")
 
 add_subdirectory("PicoSHA2")
 
-add_subdirectory("asio/asio")
+add_subdirectory("asio/asio/include")
 
 add_subdirectory("Exchanger")
