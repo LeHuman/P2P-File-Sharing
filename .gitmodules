@@ -4,3 +4,6 @@
 [submodule "PicoSHA2"]
 	path = PicoSHA2
 	url = https://github.com/LeHuman/PicoSHA2
+[submodule "asio"]
+	path = asio
+	url = https://github.com/LeHuman/asio
