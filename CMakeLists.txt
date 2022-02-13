@@ -24,3 +24,7 @@ add_subdirectory("Server")
 add_subdirectory("Console")
 
 add_subdirectory("PicoSHA2")
+
+add_subdirectory("asio/asio")
+
+add_subdirectory("Exchanger")
