@@ -56,7 +56,13 @@
       "rsyncCommandArgs": "-t --delete --delete-excluded",
       "remoteCopyBuildOutput": false,
       "remoteCopySourcesMethod": "rsync",
-      "variables": []
+      "variables": [
+        {
+          "name": "RPCLIB_CXX_STANDARD",
+          "value": "14",
+          "type": "STRING"
+        }
+      ]
     }
   ]
 }

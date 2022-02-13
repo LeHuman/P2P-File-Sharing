@@ -27,9 +27,11 @@
 namespace Exchanger {
 	using std::thread;
 	using asio::ip::tcp;
+#if defined(ASIO_HAS_CO_AWAIT)
 	using asio::awaitable;
 	using asio::co_spawn;
 	using asio::detached;
+#endif // defined(ASIO_HAS_CO_AWAIT)
 
 	static const string ID = "Socket";
 
@@ -74,16 +76,6 @@ namespace Exchanger {
 		}
 	}
 
-	awaitable<void> listener(uint16_t port) {
-		auto executor = co_await asio::this_coro::executor;
-		tcp::acceptor acceptor(executor, { tcp::v4(), port });
-		while (true) {
-			tcp::socket socket = co_await acceptor.async_accept(asio::use_awaitable);
-			Log.d(ID, "p2p conn: %s:%d", socket.local_endpoint().address().to_string().data(), socket.local_endpoint().port());
-			thread(fileSender, std::move(socket)).detach();
-		}
-	}
-
 	void OnResolve(asio::error_code &err, tcp::resolver::results_type type) {
 		if (!err) {
 			std::cout << "resolved!";
@@ -101,6 +93,16 @@ namespace Exchanger {
 	static std::mutex mutex;
 	static std::condition_variable cond;
 	static std::queue<struct query_t> queries;
+
+	awaitable<void> listener(uint16_t port) {
+		auto executor = co_await asio::this_coro::executor;
+		tcp::acceptor acceptor(executor, { tcp::v4(), port });
+		while (true) {
+			tcp::socket socket = co_await acceptor.async_accept(asio::use_awaitable);
+			Log.d(ID, "p2p conn: %s:%d", socket.local_endpoint().address().to_string().data(), socket.local_endpoint().port());
+			thread(fileSender, std::move(socket)).detach();
+		}
+	}
 
 	awaitable<void> receiver() {
 		auto executor = co_await asio::this_coro::executor;
