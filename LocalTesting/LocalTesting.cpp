@@ -92,16 +92,25 @@ void tieredThreadTest() {
 
 int main() {
 	//tieredThreadTest();
-	threadedTest();
-	threadedTest();
-	threadedTest();
-	threadedTest();
+
+	//threadedTest();
+	//threadedTest();
+	//threadedTest();
+	//threadedTest();
 
 	RPC::Indexer s(55555);
-	RPC::Indexer c(456978, "localhost", 55555);
+	RPC::Indexer c(321, "localhost", 55555);
+	RPC::Indexer c2(123, "localhost", 55555);
 
 	s.start();
 	c.start();
+	c2.start();
+
+	Util::File file("../../../../testFolder2/test.txt");
+
+	Exchanger::addLocalFile(file);
+
+	c.registry(file.name, file.hash);
 
 	Console::run(c);
 }

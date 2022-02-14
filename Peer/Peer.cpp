@@ -4,10 +4,13 @@
 #include "indexRPC.h"
 #include "Log.h"
 #include "Console.h"
+#include "Exchanger.h"
 
 using std::string;
 
 const string ID = "Peer";
+
+RPC::Indexer *peerIndexer;
 
 void registerFile(RPC::Indexer &indexer, string fileName, Index::entryHash_t hash) {
 	bool registered = indexer.registry(fileName, hash);
@@ -27,8 +30,6 @@ void deregisterFile(RPC::Indexer &indexer, Index::entryHash_t hash) {
 	}
 }
 
-RPC::Indexer *indexer;
-
 void listener(Util::File file, Util::File::Status status) {
 	if (!std::filesystem::is_regular_file(std::filesystem::path(file.path)) && status != Util::File::Status::erased) {
 		return;
@@ -36,14 +37,17 @@ void listener(Util::File file, Util::File::Status status) {
 
 	switch (status) {
 		case Util::File::Status::created:
-			registerFile(*indexer, file.path.filename().string(), file.hash);
+			registerFile(*peerIndexer, file.path.filename().string(), file.hash);
+			Exchanger::addLocalFile(file);
 			break;
 		case Util::File::Status::erased:
-			deregisterFile(*indexer, file.hash);
+			Exchanger::removeLocalFile(file);
+			deregisterFile(*peerIndexer, file.hash);
 			break;
 		case Util::File::Status::modified:
-			deregisterFile(*indexer, file.prehash);
-			registerFile(*indexer, file.path.filename().string(), file.hash);
+			deregisterFile(*peerIndexer, file.prehash);
+			Exchanger::updateLocalFile(file);
+			registerFile(*peerIndexer, file.path.filename().string(), file.hash);
 			break;
 		default:
 			Log.e(ID, "Unknown file status: %s", file.path.filename().string().data());
@@ -55,7 +59,7 @@ int main() {
 
 	RPC::Indexer c = RPC::Indexer(rand(), "localhost", 55555);
 
-	indexer = &c;
+	peerIndexer = &c;
 
 	c.start();
 

@@ -6,20 +6,22 @@
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
+#include <unordered_map>
 #include <mutex>
 #include <cstdio>
 #include <thread>
 #include <string>
+#include <vector>
 #include <queue>
+#include <fstream>
 
-#include <co_spawn.hpp>
 #include <asio/read.hpp>
 #include <asio/write.hpp>
 #include <asio/ip/tcp.hpp>
 #include <asio/connect.hpp>
-#include <asio/detached.hpp>
-#include <asio/awaitable.hpp>
 #include <asio/signal_set.hpp>
+//#include <asio/stream_file.hpp>
+#include <asio/basic_socket_iostream.hpp>
 
 #include "Exchanger.h"
 #include "Log.h"
@@ -27,52 +29,151 @@
 namespace Exchanger {
 	using std::thread;
 	using asio::ip::tcp;
-#if defined(ASIO_HAS_CO_AWAIT)
-	using asio::awaitable;
-	using asio::co_spawn;
-	using asio::detached;
-#endif // defined(ASIO_HAS_CO_AWAIT)
 
-	static const string ID = "Socket";
+	constexpr std::size_t block_size = 1024 * 4;
 
-	enum {
-		max_length = 4096
+	enum State {
+		C_Connect,
+		S_Accept,
+		C_ConfirmID,
+		S_FindFile,
+		C_AllocSpace,
+		C_Retry,
+		Streaming,
+		Disconnect,
 	};
 
-	void fileSender(tcp::socket socket) {
+	struct query_t {
+		int id;
+		int port;
+		string ip;
+		string filePath;
+		entryHash_t hash;
+		query_t(int id, string ip, int port, string hash, string filePath) : id { id }, ip { ip }, port { port }, hash { hash }, filePath { filePath }{};
+	};
+
+	static const string ID = "Exchanger";
+
+	static asio::io_context io_context(thread::hardware_concurrency());
+
+	static std::mutex mutex;
+	static std::condition_variable cond;
+	static std::queue<struct query_t> queries;
+	std::unordered_map<Index::entryHash_t, Util::File> localFiles;
+
+	void fileSender(int id, tcp::iostream stream) {
+		State state = S_Accept;
+		std::stringbuf hBuf;
+		asio::error_code error;
+		Index::entryHash_t hash;
+		Util::File file;
+		std::ifstream fileOut;
+		std::unordered_map<Index::entryHash_t, Util::File>::const_iterator it;
+
+		std::streamsize written = 1;
+		char sBuf[block_size] = { 0 };
+
 		try {
-			char buf[max_length];
-			asio::error_code error;
+			while (state != Disconnect) {
+				switch (state) {
+					case S_Accept:
+						stream << id; // Send out ID so Client can confirm
+						state = S_FindFile;
+						break;
+					case S_FindFile:
+						stream >> &hBuf;
+						hash = (Index::entryHash_t)hBuf.str(); // Get Hash from Client
 
-			uint32_t *__id = (uint32_t *)buf;
-			socket.read_some(asio::buffer(buf), error);
-			uint32_t id = *__id;
+						if ((it = localFiles.find(hash)) != localFiles.end()) { // File exists, open file and send size of file
+							file = it->second;
+							fileOut = std::ifstream(file.path, std::ios_base::in | std::ios_base::binary); // TODO: ensure file has not changed, confirm localFiles matches details
+							stream << (uint64_t)file.size;
+							state = Streaming;
+						} else { // File does not exist, disconnect
+							stream << 0;
+							state = Disconnect;
+						}
+						break;
+					case Streaming:
+						if (stream.get()) { // Get confirmation from client
+							while (written > 0 && !fileOut.eof() && !fileOut.bad() && !stream.error()) {
+								written = fileOut.readsome(sBuf, block_size);
+								stream.write(sBuf, written);
+							}
+						}
+						state = Disconnect;
+						break;
+					default:
+						Log.e(ID, "Unknown server connection state");
+						state = Disconnect;
+						break;
+				}
 
-			asio::write(socket, asio::buffer(buf, max_length)); // Write file size
-
-			while (true) {
-				if (error == asio::error::eof)
-					break; // Connection closed cleanly by peer.
-				else if (error)
-					throw asio::system_error(error); // Some other error.
-				asio::write(socket, asio::buffer(buf, max_length)); // Write file chunk
-				//std::size_t n = socket.read_some(asio::buffer(buf), error); // get confirmation
+				error = stream.error();
+				if (error == asio::error::eof)			// Connection closed cleanly by peer.
+					break;
+				else if (error)							// Some other error.
+					throw asio::system_error(error);
 			}
 		} catch (std::exception &e) {
-			Log.e(ID, "Socket Exception: %s\n", e.what());
+			Log.e(ID, "Socket Server Exception: %s\n", e.what());
+			stream.close();
 		}
 	}
 
-	void fileReceiver(tcp::socket socket) {
-		try {
-			char request[max_length];
-			asio::write(socket, asio::buffer(request, 4));
+	void fileReceiver(tcp::iostream stream, int eid, entryHash_t hash, string filePath) {
+		State state = C_ConfirmID;
+		uint64_t fileSize = 0;
+		asio::error_code error;
+		std::ofstream fileIn;
 
-			char reply[max_length];
-			size_t reply_length = asio::read(socket, asio::buffer(reply, 4));
-			std::cout.write(reply, reply_length);
+		std::streamsize received = 1;
+		char sBuf[block_size] = { 0 };
+
+		try {
+			while (state != Disconnect) {
+				switch (state) {
+					case C_ConfirmID:
+						if (stream.get() != eid) {
+							state = Disconnect;
+						} else {
+							stream << hash;
+							state = C_AllocSpace;
+						}
+						break;
+					case C_AllocSpace:
+						stream.read((char *)&fileSize, sizeof(uint64_t));
+						if (fileSize == 0) { // TODO: Check file size for mistmatch and also allocate file?
+							stream << 0;
+							state = Disconnect;
+						} else {
+							fileIn = std::ofstream(filePath, std::ios_base::out | std::ios_base::binary);
+							stream << 1;
+							state = Streaming;
+						}
+						break;
+					case Streaming:
+						while (received > 0 && !fileIn.bad() && !stream.error()) {
+							received = stream.readsome(sBuf, block_size);
+							fileIn.write(sBuf, received);
+						}
+						state = Disconnect;
+						break;
+					default:
+						Log.e(ID, "Unknown client connection state");
+						state = Disconnect;
+						break;
+				}
+
+				error = stream.error();
+				if (error == asio::error::eof)			// Connection closed cleanly by peer.
+					break;
+				else if (error)							// Some other error.
+					throw asio::system_error(error);
+			}
 		} catch (std::exception &e) {
-			Log.e(ID, "Socket Exception: %s\n", e.what());
+			Log.e(ID, "Socket Client Exception: %s\n", e.what());
+			stream.close();
 		}
 	}
 
@@ -84,54 +185,41 @@ namespace Exchanger {
 		}
 	}
 
-	struct query_t {
-		string ip;
-		int port;
-		query_t(string ip, int port) : ip { ip }, port { port }{};
-	};
+	void listener(int id, uint16_t port) {
+		tcp::acceptor acceptor(io_context, tcp::endpoint(tcp::v4(), port));
 
-	static std::mutex mutex;
-	static std::condition_variable cond;
-	static std::queue<struct query_t> queries;
-
-	awaitable<void> listener(uint16_t port) {
-		auto executor = co_await asio::this_coro::executor;
-		tcp::acceptor acceptor(executor, { tcp::v4(), port });
 		while (true) {
-			tcp::socket socket = co_await acceptor.async_accept(asio::use_awaitable);
-			Log.d(ID, "p2p conn: %s:%d", socket.local_endpoint().address().to_string().data(), socket.local_endpoint().port());
-			thread(fileSender, std::move(socket)).detach();
+			tcp::iostream stream;
+			acceptor.accept(stream.socket());
+
+			auto endpnt = stream.socket().local_endpoint();
+			Log.d(ID, "p2p conn: %s:%d", endpnt.address().to_string().data(), endpnt.port());
+			thread(fileSender, id, std::move(stream)).detach();
 		}
 	}
 
-	awaitable<void> receiver() {
-		auto executor = co_await asio::this_coro::executor;
-		tcp::resolver resolver(executor);
-		//asio::error_code error;
-
+	void receiver() { // TODO: set timeout
+		tcp::resolver resolver(io_context);
 		while (true) {
 			std::unique_lock<std::mutex> lock(mutex);
 			if (cond.wait_for(lock, std::chrono::milliseconds(50), [&]() {return !queries.empty(); })) {
 				const struct query_t query = queries.front();
 				queries.pop();
 
-				tcp::socket s(executor);
-				asio::connect(s, resolver.resolve(query.ip, std::to_string(query.port)));
-				thread(fileReceiver, std::move(s)).detach();
+				tcp::iostream stream(query.ip, std::to_string(query.port));
+				thread(fileReceiver, std::move(stream), query.id, query.hash, query.filePath).detach();
 			}
 			std::this_thread::sleep_for(std::chrono::milliseconds(50));
 		}
 	}
 
-	void _startSocket(uint32_t id, uint16_t listeningPort) { // TODO: somthing with the id, double check that it is the id we expect?
+	void _startSocket(int id, uint16_t listeningPort) {
 		try {
-			asio::io_context io_context(thread::hardware_concurrency());
-
 			asio::signal_set signals(io_context, SIGINT, SIGTERM);
 			signals.async_wait([&](auto, auto) { io_context.stop(); });
 
-			co_spawn(io_context, listener(listeningPort), detached);
-			co_spawn(io_context, receiver(), detached);
+			thread(listener, id, listeningPort).detach();
+			thread(receiver).detach();
 
 			io_context.run();
 		} catch (std::exception &e) {
@@ -139,17 +227,29 @@ namespace Exchanger {
 		}
 	}
 
-	void start(uint32_t id, uint16_t listeningPort) {
+	void start(int id, uint16_t listeningPort) {
 		thread(_startSocket, id, listeningPort).detach();
 	}
 
-	void connect(string ip, uint16_t port, entryHash_t hash) {
+	void connect(int id, string ip, uint16_t port, entryHash_t hash, string filePath) {
 		std::lock_guard<std::mutex> lock(mutex);
-		queries.emplace(ip, port);
+		queries.emplace(id, ip, port, hash, filePath);
 		cond.notify_all();
 	}
 
-	void connect(Index::conn_t conn, entryHash_t hash) {
-		connect(conn.ip, conn.port, hash);
+	void connect(Index::conn_t conn, int id, entryHash_t hash, string filePath) { // TODO: make conn_t have everything
+		connect(id, conn.ip, conn.port, hash, filePath);
+	}
+
+	void addLocalFile(Util::File file) {
+		localFiles.emplace(file.hash, file);
+	}
+
+	void removeLocalFile(Util::File file) {
+		localFiles.erase(file.hash);
+	}
+
+	void updateLocalFile(Util::File file) {
+		localFiles.emplace(file.hash, file).first->second = file;
 	}
 }

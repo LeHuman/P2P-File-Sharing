@@ -9,6 +9,17 @@
 #include "picosha2.h"
 
 namespace Util {
+	File::File(string path) {
+		this->path = fs::path(path);
+		if (!fs::is_regular_file(this->path) || !fs::exists(this->path)) {
+			throw std::runtime_error("File is not regular or does not exist");
+		}
+		name = this->path.filename().string();
+		time = fs::last_write_time(this->path);
+		size = fs::file_size(path);
+		hash = getHash();
+	}
+
 	void File::update(fs::file_time_type time, uintmax_t size) {
 		this->time = time;
 		this->size = size;

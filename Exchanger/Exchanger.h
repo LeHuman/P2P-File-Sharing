@@ -6,14 +6,21 @@
 #include <string>
 
 #include "index.h"
+#include "Folder.h"
 
 namespace Exchanger {
 	using std::string;
 	using Index::entryHash_t;
 
-	void start(uint32_t id, uint16_t listeningPort);
+	void start(int id, uint16_t listeningPort);
 
-	void connect(Index::conn_t conn, entryHash_t hash);
+	void connect(Index::conn_t conn, int id, entryHash_t hash, string filePath);
 
-	void connect(string ip, uint16_t port, entryHash_t hash);
+	void connect(int id, string ip, uint16_t port, entryHash_t hash, string filePath);
+
+	void addLocalFile(Util::File file);
+
+	void removeLocalFile(Util::File file);
+
+	void updateLocalFile(Util::File file);
 }

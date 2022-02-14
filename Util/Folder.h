@@ -13,6 +13,7 @@ namespace Util {
 	struct File {
 		fs::path path;
 		fs::file_time_type time;
+		string name;
 		string hash;
 		string prehash;
 		uintmax_t size = 0;
@@ -22,7 +23,8 @@ namespace Util {
 		};
 
 		File() {}
-		File(fs::path path, fs::file_time_type time, uintmax_t size) : path { path }, time { time }, size { size }, hash { getHash() }{}
+		File(string path);
+		File(fs::path path, fs::file_time_type time, uintmax_t size) : path { path }, time { time }, size { size }, name { path.filename().string() }, hash { getHash() }{}
 
 		void update(fs::file_time_type time, uintmax_t size);
 
