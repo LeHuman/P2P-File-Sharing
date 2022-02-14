@@ -11,6 +11,7 @@ using std::string;
 const string ID = "Peer";
 
 Index::Indexer *peerIndexer;
+Exchanger::Exchanger *peerExchanger;
 
 void registerFile(Index::Indexer &indexer, string fileName, Index::entryHash_t hash) {
 	bool registered = indexer.registry(fileName, hash);
@@ -38,15 +39,15 @@ void listener(Util::File file, Util::File::Status status) {
 	switch (status) {
 		case Util::File::Status::created:
 			registerFile(*peerIndexer, file.path.filename().string(), file.hash);
-			Exchanger::addLocalFile(file);
+			peerExchanger->addLocalFile(file);
 			break;
 		case Util::File::Status::erased:
-			Exchanger::removeLocalFile(file);
+			peerExchanger->removeLocalFile(file);
 			deregisterFile(*peerIndexer, file.hash);
 			break;
 		case Util::File::Status::modified:
 			deregisterFile(*peerIndexer, file.prehash);
-			Exchanger::updateLocalFile(file);
+			peerExchanger->updateLocalFile(file);
 			registerFile(*peerIndexer, file.path.filename().string(), file.hash);
 			break;
 		default:
@@ -57,15 +58,19 @@ void listener(Util::File file, Util::File::Status status) {
 int main() {
 	srand((unsigned int)time(NULL));
 
-	Index::Indexer c = Index::Indexer(rand(), "localhost", 55555);
+	int id = rand();
+
+	Index::Indexer c(id, "localhost", 55555);
+	Exchanger::Exchanger e(id, 55555);
 
 	peerIndexer = &c;
+	peerExchanger = &e;
 
 	c.start();
 
 	Util::watchFolder("../../../../testFolder", 1000, listener);
 
-	Console::run(c);
+	Console::run(c, e);
 
 	return 0;
 }

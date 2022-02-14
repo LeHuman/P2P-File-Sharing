@@ -1,9 +1,7 @@
 #include "Parsers.h"
-
-#include "indexRPC.h"
 #include "Log.h"
 
-bool indexRPCFunc(Index::Indexer &indexer, std::string func, std::vector<std::string> tokens) {
+bool indexRPCFunc(Index::Indexer &indexer, Exchanger::Exchanger &exchanger, std::string func, std::vector<std::string> tokens) {
 	static const std::string ID = "indexRPCParse";
 
 	if (func == Index::k_Deregister || func == Index::k_Register) { // Shouldn't be called directly

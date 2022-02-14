@@ -26,16 +26,16 @@ namespace Console {
 		return tokens;
 	}
 
-	bool interpret(Index::Indexer &indexer) {
+	bool interpret(Index::Indexer &indexer, Exchanger::Exchanger &exchanger) {
 		vector<string> tokens = tokenize();
 		transform(tokens[0].begin(), tokens[0].end(), tokens[0].begin(), ::tolower);
 		string func = tokens[0];
 
 		// Add other parsers here
-		if (indexRPCFunc(indexer, func, tokens))
+		if (indexRPCFunc(indexer, exchanger, func, tokens))
 			return true;
 
-		if (func[0]=='q' || func[0] == 'e') {
+		if (func[0] == 'q' || func[0] == 'e') {
 			Log.e(ID, "Exiting");
 			return false;
 		}
@@ -44,11 +44,11 @@ namespace Console {
 		return true;
 	}
 
-	void run(Index::Indexer &indexer) {
+	void run(Index::Indexer &indexer, Exchanger::Exchanger &exchanger) {
 		Log(ID, "Console start!");
 		while (true) {
 			std::getline(std::cin, line);
-			if (!interpret(indexer))
+			if (!interpret(indexer, exchanger))
 				break;
 		}
 	}

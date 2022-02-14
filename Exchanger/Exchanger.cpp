@@ -20,7 +20,6 @@
 #include <asio/ip/tcp.hpp>
 #include <asio/connect.hpp>
 #include <asio/signal_set.hpp>
-//#include <asio/stream_file.hpp>
 #include <asio/basic_socket_iostream.hpp>
 
 #include "Exchanger.h"
@@ -41,15 +40,6 @@ namespace Exchanger {
 		C_Retry,
 		Streaming,
 		Disconnect,
-	};
-
-	struct query_t {
-		int id;
-		int port;
-		string ip;
-		string filePath;
-		entryHash_t hash;
-		query_t(int id, string ip, int port, string hash, string filePath) : id { id }, ip { ip }, port { port }, hash { hash }, filePath { filePath }{};
 	};
 
 	static const string ID = "Exchanger";

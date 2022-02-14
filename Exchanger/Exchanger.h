@@ -6,14 +6,24 @@
 #include <string>
 #include <queue>
 
+#include <asio/io_context.hpp>
+#include <asio/ip/tcp.hpp>
+
 #include "index.h"
 #include "Folder.h"
-
-#include <asio.hpp>
 
 namespace Exchanger {
 	using std::string;
 	using Index::entryHash_t;
+
+	struct query_t {
+		int id;
+		int port;
+		string ip;
+		string filePath;
+		entryHash_t hash;
+		query_t(int id, string ip, int port, string hash, string filePath) : id { id }, ip { ip }, port { port }, hash { hash }, filePath { filePath }{};
+	};
 
 	class Exchanger {
 		asio::io_context *io_context;

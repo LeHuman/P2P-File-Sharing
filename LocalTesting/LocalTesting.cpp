@@ -97,6 +97,9 @@ int main() {
 	Index::Indexer c(321, "localhost", 55555);
 	Index::Indexer c2(123, "localhost", 55555);
 
+	Exchanger::Exchanger e(321, 41567);
+	Exchanger::Exchanger e2(123, 46214);
+
 	s.start();
 	c.start();
 	c2.start();
@@ -114,5 +117,5 @@ int main() {
 
 	//c.registry(file.name, file.hash);
 
-	Console::run(c);
+	Console::run(c, e);
 }
