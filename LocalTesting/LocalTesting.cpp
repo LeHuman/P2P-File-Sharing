@@ -76,7 +76,7 @@ void threadedTest(string ip, uint16_t port) {
 void tieredThreadTest(string ip, uint16_t port) {
 	vector<thread *> threads;
 
-	for (size_t i = 0; i < 500; i++) {
+	for (size_t i = 0; i < 100; i++) {
 		threads.emplace_back(new thread(threadedTest, ip, port));
 		threads.emplace_back(new thread(threadedTest, ip, port));
 		threads.emplace_back(new thread(threadedTest, ip, port));
