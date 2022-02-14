@@ -26,23 +26,30 @@ namespace Console {
 		return tokens;
 	}
 
-	void interpret(Index::Indexer &indexer) {
+	bool interpret(Index::Indexer &indexer) {
 		vector<string> tokens = tokenize();
 		transform(tokens[0].begin(), tokens[0].end(), tokens[0].begin(), ::tolower);
 		string func = tokens[0];
 
 		// Add other parsers here
 		if (indexRPCFunc(indexer, func, tokens))
-			return;
+			return true;
+
+		if (func[0]=='q' || func[0] == 'e') {
+			Log.e(ID, "Exiting");
+			return false;
+		}
 
 		Log.e(ID, "Action does not exist: %s", func.data());
+		return true;
 	}
 
 	void run(Index::Indexer &indexer) {
 		Log(ID, "Console start!");
 		while (true) {
 			std::getline(std::cin, line);
-			interpret(indexer);
+			if (!interpret(indexer))
+				break;
 		}
 	}
 }
