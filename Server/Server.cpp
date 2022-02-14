@@ -3,7 +3,7 @@
 #include "Console.h"
 
 int main() {
-	RPC::Indexer s = RPC::Indexer(55555);
+	Index::Indexer s = Index::Indexer(55555);
 	s.start();
 
 	Console::run(s);

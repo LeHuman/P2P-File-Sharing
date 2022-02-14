@@ -14,8 +14,11 @@ namespace Index {
 	using std::vector;
 	using std::mutex;
 	using std::unordered_set;
+	using std::unordered_map;
 
 	using entryHash_t = std::string;
+	typedef struct conn_t conn_t;
+	struct Peer;
 
 	struct conn_t {
 		string ip;
@@ -31,8 +34,6 @@ namespace Index {
 
 		MSGPACK_DEFINE_ARRAY(ip, port);
 	};
-
-	typedef struct conn_t conn_t;
 
 	template<typename T>
 	class Referer {
@@ -68,8 +69,6 @@ namespace Index {
 		}
 	};
 
-	struct Peer;
-
 	struct Entry : public Referer<Peer> {
 		entryHash_t hash;
 		string name;
@@ -86,9 +85,7 @@ namespace Index {
 			string str();
 		};
 
-		Entry(string name, entryHash_t hash) {
-			this->name = name;
-			this->hash = hash;
+		Entry(string name, entryHash_t hash) : name { name }, hash { hash } {
 			isValid = true;
 		}
 
@@ -110,9 +107,7 @@ namespace Index {
 			string str();
 		};
 
-		Peer(int id, conn_t connInfo) {
-			this->id = id;
-			this->connInfo = connInfo;
+		Peer(int id, conn_t connInfo) : id { id }, connInfo { connInfo } {
 			isValid = true;
 		}
 
@@ -124,17 +119,25 @@ namespace Index {
 	using EntryResults = vector<Entry::searchEntry>;
 	using PeerResults = vector<Peer::searchEntry>;
 
-	bool registry(int id, conn_t connection, string entryName, entryHash_t hash);
+	class Database {
+		std::mutex mutex; // TODO: use shared_mutex or optimize to allow registry and deregister run concurrently
+		unordered_map<int, Peer *> peers {};
+		unordered_map<entryHash_t, Entry *> entries {};
 
-	bool deregister(int id, conn_t connection, entryHash_t hash);
+	public:
 
-	EntryResults search(string query);
+		bool registry(int id, conn_t connection, string entryName, entryHash_t hash);
 
-	EntryResults list();
+		bool deregister(int id, conn_t connection, entryHash_t hash);
 
-	PeerResults request(entryHash_t hash);
+		EntryResults search(string query);
 
-	void logEntries();
+		EntryResults list();
 
-	void logSearch(string query);
+		PeerResults request(entryHash_t hash);
+
+		void logEntries();
+
+		void logSearch(string query);
+	};
 }

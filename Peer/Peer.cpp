@@ -10,9 +10,9 @@ using std::string;
 
 const string ID = "Peer";
 
-RPC::Indexer *peerIndexer;
+Index::Indexer *peerIndexer;
 
-void registerFile(RPC::Indexer &indexer, string fileName, Index::entryHash_t hash) {
+void registerFile(Index::Indexer &indexer, string fileName, Index::entryHash_t hash) {
 	bool registered = indexer.registry(fileName, hash);
 	if (registered) {
 		Log.i(ID, "Registered hash: %s", fileName.data());
@@ -21,7 +21,7 @@ void registerFile(RPC::Indexer &indexer, string fileName, Index::entryHash_t has
 	}
 }
 
-void deregisterFile(RPC::Indexer &indexer, Index::entryHash_t hash) {
+void deregisterFile(Index::Indexer &indexer, Index::entryHash_t hash) {
 	bool deregistered = indexer.deregister(hash);
 	if (deregistered) {
 		Log.i(ID, "Deregisted hash: %s", hash.data());
@@ -57,7 +57,7 @@ void listener(Util::File file, Util::File::Status status) {
 int main() {
 	srand((unsigned int)time(NULL));
 
-	RPC::Indexer c = RPC::Indexer(rand(), "localhost", 55555);
+	Index::Indexer c = Index::Indexer(rand(), "localhost", 55555);
 
 	peerIndexer = &c;
 

@@ -9,7 +9,7 @@
 #include "Log.h"
 #include "index.h"
 
-namespace RPC {
+namespace Index {
 	using std::vector;
 	using std::string;
 	using std::chrono::milliseconds;
@@ -28,6 +28,7 @@ namespace RPC {
 	class Indexer {
 		rpc::client *clt = nullptr;
 		rpc::server *srv = nullptr;
+		Index::Database *database = nullptr;
 		Index::conn_t conn;
 		bool isServer = false;
 		int id = -1;
@@ -61,6 +62,11 @@ namespace RPC {
 		 * @note Is non-blocking
 		*/
 		void start();
+
+		/**
+		 * @brief Stop the server/client connection
+		*/
+		void stop();
 
 		/**
 		 * @brief Client can ping server for delay
@@ -104,5 +110,11 @@ namespace RPC {
 		 * @return Vector of peers and their connection info
 		*/
 		PeerResults request(entryHash_t hash);
+
+		/**
+		 * @brief Return the current database, if there is one
+		 * @return database or nullptr if this is a client
+		*/
+		Database *getDatabase();
 	};
 }

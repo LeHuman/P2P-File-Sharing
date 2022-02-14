@@ -2,7 +2,7 @@
 
 #include "indexRPC.h"
 
-namespace RPC {
+namespace Index {
 	Indexer::~Indexer() {
 		if (srv != nullptr)
 			delete srv;
@@ -12,6 +12,7 @@ namespace RPC {
 
 	Indexer::Indexer(uint16_t port) {
 		srv = new rpc::server(port);
+		database = new Database();
 		conn.port = port;
 		isServer = true;
 		bindFunctions();
@@ -24,18 +25,43 @@ namespace RPC {
 		isServer = false;
 	}
 
-	bool _ping() {
-		return true;
-	}
+	//static void __registry(Database *database, int id, conn_t connection, string entryName, entryHash_t hash) {
+	//	database->registry(id, connection, entryName, hash);
+	//}
+	//static void __deregister(Database *database, int id, conn_t connection, entryHash_t hash) {
+	//	database->deregister(id, connection, hash);
+	//}
+	//static void __search(Database *database, string query) {
+	//	database->search(query);
+	//}
+	//static void __list(Database *database) {
+	//	database->list();
+	//}
+	//static void __request(Database *database, entryHash_t hash) {
+	//	database->request(hash);
+	//}
 
 	void Indexer::bindFunctions() {
 		if (isServer) {
-			srv->bind(k_Register, Index::registry);
-			srv->bind(k_Deregister, Index::deregister);
-			srv->bind(k_Search, Index::search);
-			srv->bind(k_List, Index::list);
-			srv->bind(k_Request, Index::request);
-			srv->bind(k_Ping, _ping);
+			srv->bind(k_Register, [&](int id, conn_t connection, string entryName, entryHash_t hash) -> bool { return database->registry(id, connection, entryName, hash); });
+			srv->bind(k_Deregister, [&](int id, conn_t connection, entryHash_t hash) -> bool {return database->deregister(id, connection, hash); });
+			srv->bind(k_Search, [&](string query) -> EntryResults {return database->search(query); });
+			srv->bind(k_List, [&]() -> EntryResults {return database->list(); });
+			srv->bind(k_Request, [&](entryHash_t hash) -> PeerResults {return database->request(hash); });
+			srv->bind(k_Ping, [&]() {return true; });
+		}
+	}
+
+	void Indexer::stop() {
+		if (isServer) {
+			Log.i("Indexer", "Stopping Server");
+			srv->stop();
+			delete srv;
+			srv = nullptr;
+		} else {
+			Log.i("Indexer", "Stopping Client");
+			delete clt;
+			clt = nullptr;
 		}
 	}
 
@@ -75,19 +101,23 @@ namespace RPC {
 
 	EntryResults Indexer::search(string query) {
 		if (isServer)
-			return Index::search(query);
+			return database->search(query);
 		return clt->call(k_Search, query).as<EntryResults>();
 	}
 
 	EntryResults Indexer::list() {
 		if (isServer)
-			return Index::list();
+			return database->list();
 		return clt->call(k_List).as<EntryResults>();
 	}
 
 	PeerResults Indexer::request(entryHash_t hash) {
 		if (isServer)
-			return Index::request(hash);
+			return database->request(hash);
 		return clt->call(k_Request, hash).as<PeerResults>();
+	}
+
+	Database *Indexer::getDatabase() {
+		return database;
 	}
 }

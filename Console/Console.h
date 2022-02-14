@@ -9,5 +9,5 @@
 namespace Console {
 	using std::string;
 
-	void run(RPC::Indexer &indexer);
+	void run(Index::Indexer &indexer);
 }

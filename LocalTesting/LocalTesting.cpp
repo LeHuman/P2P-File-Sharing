@@ -16,10 +16,6 @@ using std::string;
 using std::pair;
 using std::thread;
 
-using Index::request;
-using Index::registry;
-using Index::deregister;
-
 std::random_device dev;
 std::mt19937 rng(dev());
 std::uniform_int_distribution<std::mt19937::result_type> rndDist(1024, 1028);
@@ -47,23 +43,26 @@ Index::conn_t connections[] = {
 std::uniform_int_distribution<std::mt19937::result_type> rndN(0, 6);
 std::uniform_int_distribution<std::mt19937::result_type> rndBool(0, 3);
 
-void threadedTest() {
+void threadedTest(string ip, uint16_t port) {
 	vector<thread *> threads;
+
+	Index::Indexer indexer(rndN(rng), ip, port);
+	indexer.start();
 
 	for (size_t i = 0; i < 16; i++) {
 		switch (rndBool(rng)) {
 			case 0:
-				threads.push_back(new thread(registry, rndN(rng), connections[rndN(rng)], rnd_names[rndN(rng)], std::to_string(rndDist(rng))));
+				threads.push_back(new thread([&](string entryName, Index::entryHash_t hash) {indexer.registry(entryName, hash); }, rnd_names[rndN(rng)], std::to_string(rndDist(rng))));
 				break;
 			case 1:
-				threads.emplace_back(new thread(deregister, rndN(rng), connections[rndN(rng)], std::to_string(rndDist(rng))));
+				threads.emplace_back(new thread([&](Index::entryHash_t hash) {indexer.deregister(hash); }, std::to_string(rndDist(rng))));
 				break;
 			case 2:
-				threads.emplace_back(new thread(request, std::to_string(rndDist(rng))));
+				threads.emplace_back(new thread([&](Index::entryHash_t hash) {indexer.request(hash); }, std::to_string(rndDist(rng))));
 				break;
 			case 3:
-				threads.emplace_back(new thread(Index::logSearch, "z"));
-				threads.emplace_back(new thread(Index::logSearch, "am"));
+				//threads.emplace_back(new thread([&](string query) {data->logSearch(query); }, "z"));
+				//threads.emplace_back(new thread([&](string query) {data->logSearch(query); }, "am"));
 				break;
 		}
 	}
@@ -74,16 +73,19 @@ void threadedTest() {
 	}
 }
 
-void tieredThreadTest() {
+void tieredThreadTest(string ip, uint16_t port) {
+	vector<thread *> threads;
+
 	for (size_t i = 0; i < 500; i++) {
-		thread a(threadedTest);
-		thread b(threadedTest);
-		thread c(threadedTest);
-		thread d(threadedTest);
-		a.join();
-		b.join();
-		c.join();
-		d.join();
+		threads.emplace_back(new thread(threadedTest, ip, port));
+		threads.emplace_back(new thread(threadedTest, ip, port));
+		threads.emplace_back(new thread(threadedTest, ip, port));
+		threads.emplace_back(new thread(threadedTest, ip, port));
+	}
+
+	for (thread *thr : threads) {
+		thr->join();
+		delete thr;
 	}
 }
 
@@ -91,26 +93,26 @@ void tieredThreadTest() {
 #include "Exchanger.h"
 
 int main() {
-	//tieredThreadTest();
-
-	//threadedTest();
-	//threadedTest();
-	//threadedTest();
-	//threadedTest();
-
-	RPC::Indexer s(55555);
-	RPC::Indexer c(321, "localhost", 55555);
-	RPC::Indexer c2(123, "localhost", 55555);
+	Index::Indexer s(55555);
+	Index::Indexer c(321, "localhost", 55555);
+	Index::Indexer c2(123, "localhost", 55555);
 
 	s.start();
 	c.start();
 	c2.start();
 
-	Util::File file("../../../../testFolder2/test.txt");
+	tieredThreadTest("localhost", 55555);
 
-	Exchanger::addLocalFile(file);
+	//threadedTest();
+	//threadedTest();
+	//threadedTest();
+	//threadedTest();
 
-	c.registry(file.name, file.hash);
+	//Util::File file("../../../../testFolder2/test.txt");
+
+	//Exchanger::addLocalFile(file);
+
+	//c.registry(file.name, file.hash);
 
 	Console::run(c);
 }

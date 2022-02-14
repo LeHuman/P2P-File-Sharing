@@ -14,14 +14,42 @@
 #include "index.h"
 
 namespace Index {
-	using std::unordered_map;
 
-	static std::mutex mutex; // TODO: use shared_mutex or optimize to allow registry and deregister run concurrently
+	inline std::tm localtime_xp(time_t timer) {
+		std::tm bt {};
+#if defined(__unix__)
+		localtime_r(&timer, &bt);
+#elif defined(_MSC_VER)
+		localtime_s(&bt, &timer);
+#else
+		static std::mutex mtx;
+		std::lock_guard<std::mutex> lock(mtx);
+		bt = *std::localtime(&timer);
+#endif
+		return bt;
+	}
 
-	unordered_map<int, Peer *> peers {};
-	unordered_map<entryHash_t, Entry *> entries {};
+	string Entry::searchEntry::firstIndexedString() {
+		static char buf[256];
+		struct std::tm tm = localtime_xp(firstIndexed);
+		if (std::strftime(buf, sizeof(buf), "%d/%m/%Y %T", &tm))
+			return std::string { buf };
+		throw std::runtime_error("Failed to get current date as string");
+	}
 
-	bool registry(int id, conn_t connection, string entryName, entryHash_t hash) {
+	string Entry::searchEntry::str() {
+		std::ostringstream ss;
+		ss << "Hash: " << hash << "\nAdded on " << firstIndexedString() << "\n\tName: " << name << "\n\tPeers: " << peers;
+		return ss.str();
+	}
+
+	string Peer::searchEntry::str() {
+		std::ostringstream ss;
+		ss << "[" << id << "] " << connInfo.ip << ":" << connInfo.port;
+		return ss.str();
+	}
+
+	bool Database::registry(int id, conn_t connection, string entryName, entryHash_t hash) {
 		mutex.lock();
 
 		unordered_map<entryHash_t, Entry *>::const_iterator gotE = entries.find(hash); // TODO: remove need for mutex here by ensuring matching registry call is not being run
@@ -81,7 +109,7 @@ namespace Index {
 		return true;
 	}
 
-	bool deregister(int id, conn_t connection, entryHash_t hash) {
+	bool Database::deregister(int id, conn_t connection, entryHash_t hash) {
 		mutex.lock();
 
 		unordered_map<entryHash_t, Entry *>::const_iterator gotE = entries.find(hash);
@@ -155,41 +183,7 @@ namespace Index {
 		return removed;
 	}
 
-	inline std::tm localtime_xp(time_t timer) {
-		std::tm bt {};
-#if defined(__unix__)
-		localtime_r(&timer, &bt);
-#elif defined(_MSC_VER)
-		localtime_s(&bt, &timer);
-#else
-		static std::mutex mtx;
-		std::lock_guard<std::mutex> lock(mtx);
-		bt = *std::localtime(&timer);
-#endif
-		return bt;
-	}
-
-	string Entry::searchEntry::firstIndexedString() {
-		static char buf[256];
-		struct std::tm tm = localtime_xp(firstIndexed);
-		if (std::strftime(buf, sizeof(buf), "%d/%m/%Y %T", &tm))
-			return std::string { buf };
-		throw std::runtime_error("Failed to get current date as string");
-	}
-
-	string Entry::searchEntry::str() {
-		std::ostringstream ss;
-		ss << "Hash: " << hash << "\nAdded on " << firstIndexedString() << "\n\tName: " << name << "\n\tPeers: " << peers;
-		return ss.str();
-	}
-
-	string Peer::searchEntry::str() {
-		std::ostringstream ss;
-		ss << "[" << id << "] " << connInfo.ip << ":" << connInfo.port;
-		return ss.str();
-	}
-
-	EntryResults list() {
+	EntryResults Database::list() {
 		EntryResults results;
 
 		Log("List", "Listing all files entries");
@@ -205,7 +199,7 @@ namespace Index {
 		return results;
 	}
 
-	EntryResults search(string query) {
+	EntryResults Database::search(string query) {
 		EntryResults results;
 
 		Log("Search", "Searching for query: %s", query.data());
@@ -234,7 +228,7 @@ namespace Index {
 		return results;
 	}
 
-	PeerResults request(entryHash_t hash) {
+	PeerResults Database::request(entryHash_t hash) {
 		PeerResults results;
 
 		Log("Request", "Searching for hash: %s", hash.data());
@@ -257,13 +251,13 @@ namespace Index {
 		return results;
 	}
 
-	void logEntries() {
+	void Database::logEntries() {
 		for (Index::Entry::searchEntry entry : list()) {
 			Log.i("Lister", "Name:%s\n\tpeers:%lld\n\ti:%s\n\tH:%s", entry.name.c_str(), entry.peers, entry.firstIndexedString().data(), entry.hash.data());
 		}
 	}
 
-	void logSearch(string query) {
+	void Database::logSearch(string query) {
 		for (Index::Entry::searchEntry entry : search(query)) {
 			Log.i("Searcher", "Name:%s\n\tpeers:%lld\n\ti:%s\n\tH:%s", entry.name.c_str(), entry.peers, entry.firstIndexedString().data(), entry.hash.data());
 		}

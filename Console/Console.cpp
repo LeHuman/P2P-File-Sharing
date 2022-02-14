@@ -26,7 +26,7 @@ namespace Console {
 		return tokens;
 	}
 
-	void interpret(RPC::Indexer &indexer) {
+	void interpret(Index::Indexer &indexer) {
 		vector<string> tokens = tokenize();
 		transform(tokens[0].begin(), tokens[0].end(), tokens[0].begin(), ::tolower);
 		string func = tokens[0];
@@ -38,7 +38,7 @@ namespace Console {
 		Log.e(ID, "Action does not exist: %s", func.data());
 	}
 
-	void run(RPC::Indexer &indexer) {
+	void run(Index::Indexer &indexer) {
 		Log(ID, "Console start!");
 		while (true) {
 			std::getline(std::cin, line);
