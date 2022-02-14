@@ -25,22 +25,6 @@ namespace Index {
 		isServer = false;
 	}
 
-	//static void __registry(Database *database, int id, conn_t connection, string entryName, entryHash_t hash) {
-	//	database->registry(id, connection, entryName, hash);
-	//}
-	//static void __deregister(Database *database, int id, conn_t connection, entryHash_t hash) {
-	//	database->deregister(id, connection, hash);
-	//}
-	//static void __search(Database *database, string query) {
-	//	database->search(query);
-	//}
-	//static void __list(Database *database) {
-	//	database->list();
-	//}
-	//static void __request(Database *database, entryHash_t hash) {
-	//	database->request(hash);
-	//}
-
 	void Indexer::bindFunctions() {
 		if (isServer) {
 			srv->bind(k_Register, [&](int id, conn_t connection, string entryName, entryHash_t hash) -> bool { return database->registry(id, connection, entryName, hash); });

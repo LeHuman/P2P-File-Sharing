@@ -152,10 +152,15 @@ namespace Index {
 
 		/*mutex.unlock();*/
 
-		bool removed = true;
+		int removed = 0;
 
-		removed &= e->remove(p);
-		removed &= p->remove(e);
+		if (!e->remove(p)) {
+			removed += 1; 
+		}
+
+		if (!p->remove(e)) {
+			removed -= 2;
+		}
 
 		if (!e->valid()) {
 			//e->mutex.lock();
@@ -174,7 +179,16 @@ namespace Index {
 
 		mutex.unlock();
 
-		if (!removed) {
+		switch (removed) {
+			case 1:
+				Log.w("Deregister", "Entry did not refrence peer\n\tID: %d\n\thash: %s", id, hash.data());
+				break;
+			case -2:
+				Log.w("Deregister", "Peer did not refrence entry\n\tID: %d\n\thash: %s", id, hash.data());
+				break;
+		}
+
+		if (removed != 0) {
 			Log.e("Deregister", "Mutual removal was not achieved\n\tID: %d\n\thash: %s", id, hash.data());
 		}
 
