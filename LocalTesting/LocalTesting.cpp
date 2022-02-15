@@ -91,6 +91,7 @@ void tieredThreadTest(string ip, uint16_t port) {
 
 #include "Console.h"
 #include "Exchanger.h"
+#include <rpc/rpc_error.h>
 
 int main() {
 	Index::Indexer s(55555);
@@ -102,14 +103,15 @@ int main() {
 
 	s.start();
 	c.start();
-	c2.start();
+	//c2.start();
+	//s.stop();
 
-	tieredThreadTest("localhost", 55555);
+	//tieredThreadTest("localhost", 55555);
 
-	//threadedTest();
-	//threadedTest();
-	//threadedTest();
-	//threadedTest();
+	threadedTest("localhost", 55555);
+	threadedTest("localhost", 55555);
+	threadedTest("localhost", 55555);
+	threadedTest("localhost", 55555);
 
 	//Util::File file("../../../../testFolder2/test.txt");
 
