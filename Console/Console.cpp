@@ -35,7 +35,7 @@ namespace Console {
 		if (indexRPCFunc(indexer, exchanger, func, tokens))
 			return true;
 
-		if (func[0] == 'q' || func[0] == 'e') {
+		if (func == "q" || func == "quit" || func == "exit") {
 			Log.e(ID, "Exiting");
 			return false;
 		}
@@ -48,8 +48,12 @@ namespace Console {
 		Log(ID, "Console start!");
 		while (true) {
 			std::getline(std::cin, line);
-			if (!interpret(indexer, exchanger))
-				break;
+			try {
+				if (!interpret(indexer, exchanger))
+					break;
+			} catch (const std::exception &e) {
+				Log.e(ID, e.what());
+			}
 		}
 	}
 }

@@ -4,8 +4,8 @@
 #include <string>
 #include <iostream>
 
-#include "indexRPC.h"
 #include "Exchanger.h"
+#include "indexRPC.h"
 
 namespace Console {
 	using std::string;
