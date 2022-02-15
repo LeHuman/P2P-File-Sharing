@@ -17,12 +17,12 @@ namespace Exchanger {
 	using Index::entryHash_t;
 
 	struct query_t {
-		int id;
+		uint32_t id;
 		int port;
 		string ip;
 		string filePath;
 		entryHash_t hash;
-		query_t(int id, string ip, int port, string hash, string filePath) : id { id }, ip { ip }, port { port }, hash { hash }, filePath { filePath }{};
+		query_t(uint32_t id, string ip, int port, string hash, string filePath) : id { id }, ip { ip }, port { port }, hash { hash }, filePath { filePath }{};
 	};
 
 	class Exchanger {
@@ -35,21 +35,21 @@ namespace Exchanger {
 		std::queue<struct query_t> queries;
 		std::unordered_map<Index::entryHash_t, Util::File> localFiles;
 
-		void fileSender(int id, asio::ip::tcp::iostream stream);
-		void fileReceiver(asio::ip::tcp::iostream stream, int eid, entryHash_t hash, string filePath);
-		void listener(int id, uint16_t port);
+		void fileSender(uint32_t id, asio::ip::tcp::iostream stream);
+		void fileReceiver(asio::ip::tcp::iostream stream, uint32_t eid, entryHash_t hash, string filePath);
+		void listener(uint32_t id, uint16_t port);
 		void receiver();
-		void _startSocket(int id, uint16_t listeningPort);
+		void _startSocket(uint32_t id, uint16_t listeningPort);
 
 	public:
 		~Exchanger();
-		Exchanger(int id, uint16_t listeningPort);
+		Exchanger(uint32_t id, uint16_t listeningPort);
 
 		void stop();
 
-		void connect(Index::conn_t conn, int id, entryHash_t hash, string filePath);
+		void connect(Index::conn_t conn, uint32_t id, entryHash_t hash, string filePath);
 
-		void connect(int id, string ip, uint16_t port, entryHash_t hash, string filePath);
+		void connect(uint32_t id, string ip, uint16_t port, entryHash_t hash, string filePath);
 
 		void addLocalFile(Util::File file);
 

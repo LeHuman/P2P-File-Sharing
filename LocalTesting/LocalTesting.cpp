@@ -94,30 +94,34 @@ void tieredThreadTest(string ip, uint16_t port) {
 #include <rpc/rpc_error.h>
 
 int main() {
-	Index::Indexer s(55555);
-	Index::Indexer c(321, "localhost", 55555);
-	Index::Indexer c2(123, "localhost", 55555);
+	//Index::Indexer s(55555);
+	//Index::Indexer c(321, "localhost", 55555);
+	//Index::Indexer c2(123, "localhost", 55555);
 
 	Exchanger::Exchanger e(321, 41567);
 	Exchanger::Exchanger e2(123, 46214);
 
-	s.start();
-	c.start();
+	//s.start();
+	//c.start();
 	//c2.start();
 	//s.stop();
 
 	//tieredThreadTest("localhost", 55555);
 
-	threadedTest("localhost", 55555);
-	threadedTest("localhost", 55555);
-	threadedTest("localhost", 55555);
-	threadedTest("localhost", 55555);
+	//threadedTest("localhost", 55555);
+	//threadedTest("localhost", 55555);
+	//threadedTest("localhost", 55555);
+	//threadedTest("localhost", 55555);
 
-	//Util::File file("../../../../testFolder2/test.txt");
+	Util::File file("../../../../testFolder2/file.bin");
 
-	//Exchanger::addLocalFile(file);
+	e.addLocalFile(file);
+	e2.connect(321, "localhost", 41567, file.hash, "../../../../testFolder/file-copy.bin");
 
 	//c.registry(file.name, file.hash);
 
-	Console::run(c, e);
+	while (true) {
+	}
+
+	//Console::run(c, e);
 }

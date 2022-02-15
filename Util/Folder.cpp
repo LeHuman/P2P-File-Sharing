@@ -31,7 +31,7 @@ namespace Util {
 		std::ifstream f(path, std::ios::binary);
 		std::vector<unsigned char> hash(picosha2::k_digest_size);
 		picosha2::hash256(f, hash.begin(), hash.end());
-		return picosha2::bytes_to_hex_string(hash.begin(), hash.end());
+		return picosha2::bytes_to_hex_string(hash.begin(), hash.end()); // TODO: Hash function is *very* slow
 	}
 
 	void Folder::operator()(fs::path path, std::chrono::duration<int, std::milli> delay, const std::function<void(File, File::Status)> &listener) {

@@ -44,46 +44,60 @@ namespace Exchanger {
 
 	static const string ID = "Exchanger";
 
-	void Exchanger::fileSender(int id, tcp::iostream stream) {
+	void Exchanger::fileSender(uint32_t id, tcp::iostream stream) {
 		State state = State::S_Accept;
-		std::stringbuf hBuf;
+		uint16_t hashLen = 0;
+		uint64_t fileSize = 0;
+		char status = 0;
+		std::streamsize written = 0;
+
 		asio::error_code error;
 		Index::entryHash_t hash;
 		Util::File file;
 		std::ifstream fileOut;
 		std::unordered_map<Index::entryHash_t, Util::File>::const_iterator it;
 
-		std::streamsize written = 1;
 		char sBuf[block_size] = { 0 };
 
 		try {
 			while (state != State::Disconnect) {
 				switch (state) {
 					case State::S_Accept:
-						stream << id; // Send out ID so Client can confirm
+						stream.write((char *)&id, sizeof(uint32_t));
 						state = State::S_FindFile;
 						break;
 					case State::S_FindFile:
-						stream >> &hBuf;
-						hash = (Index::entryHash_t)hBuf.str(); // Get Hash from Client
+						stream.read((char *)&hashLen, sizeof(uint16_t));
+						if (hashLen >= block_size) { // TODO: remove limit
+							Log.e(ID, "Server: Hash size too large: %d", hashLen);
+							state = State::Disconnect;
+							break;
+						}
+						stream.read(sBuf, hashLen);
+						hash = Index::entryHash_t(sBuf); // Get Hash from Client
 
 						if ((it = localFiles.find(hash)) != localFiles.end()) { // File exists, open file and send size of file
 							file = it->second;
 							fileOut = std::ifstream(file.path, std::ios_base::in | std::ios_base::binary); // TODO: ensure file has not changed, confirm localFiles matches details
-							stream << (uint64_t)file.size;
+							fileSize = file.size;
+							stream.write((char *)&fileSize, sizeof(uint64_t));
 							state = State::Streaming;
 						} else { // File does not exist, disconnect
 							stream << 0;
+							Log.w(ID, "Server: File does not exist: %s", hash);
 							state = State::Disconnect;
 						}
 						break;
 					case State::Streaming:
-						if (stream.get()) { // Get confirmation from client
-							while (written > 0 && !fileOut.eof() && !fileOut.bad() && !stream.error()) {
-								written = fileOut.readsome(sBuf, block_size);
+						stream.read(&status, 1);
+						if (status) { // Get confirmation from client
+							while (!fileOut.eof() && !fileOut.bad() && !stream.error()) {
+								fileOut.read(sBuf, block_size);
+								written = fileOut.gcount();
 								stream.write(sBuf, written);
 							}
 						}
+						Log.i(ID, "Server: Finished streaming");
 						state = State::Disconnect;
 						break;
 					default:
@@ -104,42 +118,54 @@ namespace Exchanger {
 		}
 	}
 
-	void Exchanger::fileReceiver(tcp::iostream stream, int eid, entryHash_t hash, string filePath) {
+	void Exchanger::fileReceiver(tcp::iostream stream, uint32_t eid, entryHash_t hash, string filePath) {
 		State state = State::C_ConfirmID;
+		uint16_t hashLen = hash.size();
 		uint64_t fileSize = 0;
+		char status = 0;
+		std::streamsize received = 1;
+
 		asio::error_code error;
 		std::ofstream fileIn;
 
-		std::streamsize received = 1;
 		char sBuf[block_size] = { 0 };
+		uint32_t id = 0;
 
 		try {
 			while (state != State::Disconnect) {
 				switch (state) {
 					case State::C_ConfirmID:
-						if (stream.get() != eid) {
+						stream.read((char *)&id, sizeof(uint32_t));
+						if (id != eid) {
+							Log.w(ID, "Client: mismatched ID: %d", id);
 							state = State::Disconnect;
 						} else {
-							stream << hash;
+							stream.write((char *)&hashLen, sizeof(uint16_t));
+							stream.write(hash.data(), hash.size());
 							state = State::C_AllocSpace;
 						}
 						break;
 					case State::C_AllocSpace:
 						stream.read((char *)&fileSize, sizeof(uint64_t));
 						if (fileSize == 0) { // TODO: Check file size for mistmatch and also allocate file?
-							stream << 0;
+							status = 0;
+							stream.write(&status, 0);
+							Log.w(ID, "Client: invalid filesize: %d", fileSize);
 							state = State::Disconnect;
 						} else {
 							fileIn = std::ofstream(filePath, std::ios_base::out | std::ios_base::binary);
-							stream << 1;
+							status = 1;
+							stream.write(&status, 1);
 							state = State::Streaming;
 						}
 						break;
 					case State::Streaming:
 						while (received > 0 && !fileIn.bad() && !stream.error()) {
-							received = stream.readsome(sBuf, block_size);
+							stream.read(sBuf, block_size);
+							received = stream.gcount();
 							fileIn.write(sBuf, received);
 						}
+						Log.i(ID, "Client: Finished streaming");
 						state = State::Disconnect;
 						break;
 					default:
@@ -147,7 +173,7 @@ namespace Exchanger {
 						state = State::Disconnect;
 						break;
 				}
-
+				// TODO: double check final hash
 				error = stream.error();
 				if (error == asio::error::eof)			// Connection closed cleanly by peer.
 					break;
@@ -168,7 +194,7 @@ namespace Exchanger {
 		}
 	}
 
-	void Exchanger::listener(int id, uint16_t port) {
+	void Exchanger::listener(uint32_t id, uint16_t port) {
 		tcp::acceptor acceptor(*io_context, tcp::endpoint(tcp::v4(), port));
 
 		while (true) {
@@ -197,7 +223,7 @@ namespace Exchanger {
 		running = true;
 	}
 
-	void Exchanger::_startSocket(int id, uint16_t listeningPort) {
+	void Exchanger::_startSocket(uint32_t id, uint16_t listeningPort) {
 		try {
 			asio::signal_set signals(*io_context, SIGINT, SIGTERM);
 			signals.async_wait([&](auto, auto) { io_context->stop(); });
@@ -223,18 +249,18 @@ namespace Exchanger {
 		}
 	}
 
-	Exchanger::Exchanger(int id, uint16_t listeningPort) {
+	Exchanger::Exchanger(uint32_t id, uint16_t listeningPort) {
 		io_context = new asio::io_context(thread::hardware_concurrency());
 		thread(&Exchanger::_startSocket, this, id, listeningPort).detach();
 	}
 
-	void Exchanger::connect(int id, string ip, uint16_t port, entryHash_t hash, string filePath) {
+	void Exchanger::connect(uint32_t id, string ip, uint16_t port, entryHash_t hash, string filePath) {
 		std::lock_guard<std::mutex> lock(mutex);
 		queries.emplace(id, ip, port, hash, filePath);
 		cond.notify_all();
 	}
 
-	void Exchanger::connect(Index::conn_t conn, int id, entryHash_t hash, string filePath) { // TODO: make conn_t have everything
+	void Exchanger::connect(Index::conn_t conn, uint32_t id, entryHash_t hash, string filePath) { // TODO: make conn_t have everything
 		connect(id, conn.ip, conn.port, hash, filePath);
 	}
 
