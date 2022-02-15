@@ -50,6 +50,8 @@ namespace Exchanger {
 		State state = State::S_Accept;
 		uint16_t hashLen = 0;
 		uint64_t fileSize = 0;
+		uint64_t totalWritten = 0;
+		double lastWritten = 0;
 		char status = 0;
 		std::streamsize written = 0;
 
@@ -80,7 +82,7 @@ namespace Exchanger {
 						stream.read(sBuf, hashLen);
 						hash = Index::entryHash_t(sBuf); // Get Hash from Client
 
-						Log.d(sID, "Hash get: %s", hash);
+						Log.d(sID, "Hash get: %s", hash.data());
 
 						if ((it = localFiles.find(hash)) != localFiles.end()) { // File exists, open file and send size of file
 							file = it->second;
@@ -91,7 +93,7 @@ namespace Exchanger {
 							state = State::Streaming;
 						} else { // File does not exist, disconnect
 							stream << 0;
-							Log.w(sID, "File does not exist: %s", hash);
+							Log.w(sID, "File does not exist: %s", hash.data());
 							state = State::Disconnect;
 						}
 						break;
@@ -103,6 +105,11 @@ namespace Exchanger {
 							while (!fileOut.eof() && !fileOut.bad() && !stream.error()) {
 								fileOut.read(sBuf, block_size);
 								written = fileOut.gcount();
+								totalWritten += written;
+								if (((double)totalWritten / fileSize) - lastWritten > 0.01) {
+									lastWritten = (double)totalWritten / fileSize;
+									Log.d(sID, "Written %lld%%", (uint64_t)(lastWritten * 100));
+								}
 								stream.write(sBuf, written);
 							}
 							Log.i(sID, "Finished streaming");
@@ -152,7 +159,7 @@ namespace Exchanger {
 							Log.w(cID, "Mismatched ID: %d", id);
 							state = State::Disconnect;
 						} else {
-							Log.d(cID, "ID match, sending hash: &s", hash);
+							Log.d(cID, "ID match, sending hash: %s", hash.data());
 							stream.write((char *)&hashLen, sizeof(uint16_t));
 							stream.write(hash.data(), hash.size());
 							state = State::C_AllocSpace;
