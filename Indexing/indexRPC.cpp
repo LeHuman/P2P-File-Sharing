@@ -1,11 +1,14 @@
 #include <thread>
 
 #include "indexRPC.h"
+#include <rpc/rpc_error.h>
 
 namespace Index {
 	Indexer::~Indexer() {
-		if (srv != nullptr)
+		if (srv != nullptr) {
+			srv->stop();
 			delete srv;
+		}
 		if (clt != nullptr)
 			delete clt;
 	}
@@ -56,7 +59,13 @@ namespace Index {
 		} else {
 			Log.i("Indexer", "Running Client");
 			clt = new rpc::client(conn.ip, conn.port);
-			Log.i("Indexer", "Server pinged! %dms", ping());
+			clt->set_timeout(6000);
+			try {
+				clt->call(k_Ping);
+				Log.i("Indexer", "Server pinged! %dms", ping());
+			} catch (const rpc::system_error &e) {
+				Log.f("Indexer", "Unable to create client");
+			}
 		}
 	}
 
