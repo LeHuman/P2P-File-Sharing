@@ -43,6 +43,8 @@ namespace Exchanger {
 	};
 
 	static const string ID = "Exchanger";
+	static const string sID = "Exchanger Server";
+	static const string cID = "Exchanger Client";
 
 	void Exchanger::fileSender(uint32_t id, tcp::iostream stream) {
 		State state = State::S_Accept;
@@ -63,45 +65,54 @@ namespace Exchanger {
 			while (state != State::Disconnect) {
 				switch (state) {
 					case State::S_Accept:
+						Log.d(sID, "Sending ID");
 						stream.write((char *)&id, sizeof(uint32_t));
 						state = State::S_FindFile;
 						break;
 					case State::S_FindFile:
+						Log.d(sID, "Reading hash size");
 						stream.read((char *)&hashLen, sizeof(uint16_t));
 						if (hashLen >= block_size) { // TODO: remove limit
-							Log.e(ID, "Server: Hash size too large: %d", hashLen);
+							Log.e(sID, "Hash size too large: %d", hashLen);
 							state = State::Disconnect;
 							break;
 						}
 						stream.read(sBuf, hashLen);
 						hash = Index::entryHash_t(sBuf); // Get Hash from Client
 
+						Log.d(sID, "Hash get: %s", hash);
+
 						if ((it = localFiles.find(hash)) != localFiles.end()) { // File exists, open file and send size of file
 							file = it->second;
 							fileOut = std::ifstream(file.path, std::ios_base::in | std::ios_base::binary); // TODO: ensure file has not changed, confirm localFiles matches details
 							fileSize = file.size;
+							Log.d(sID, "File found, sending size: %d", fileSize);
 							stream.write((char *)&fileSize, sizeof(uint64_t));
 							state = State::Streaming;
 						} else { // File does not exist, disconnect
 							stream << 0;
-							Log.w(ID, "Server: File does not exist: %s", hash);
+							Log.w(sID, "File does not exist: %s", hash);
 							state = State::Disconnect;
 						}
 						break;
 					case State::Streaming:
+						Log.d(sID, "Waiting to stream");
 						stream.read(&status, 1);
 						if (status) { // Get confirmation from client
+							Log.d(sID, "Streaming");
 							while (!fileOut.eof() && !fileOut.bad() && !stream.error()) {
 								fileOut.read(sBuf, block_size);
 								written = fileOut.gcount();
 								stream.write(sBuf, written);
 							}
+							Log.i(sID, "Finished streaming");
+						} else {
+							Log.w(sID, "Client unable to stream");
 						}
-						Log.i(ID, "Server: Finished streaming");
 						state = State::Disconnect;
 						break;
 					default:
-						Log.e(ID, "Unknown server connection state");
+						Log.e(sID, "Unknown connection state");
 						state = State::Disconnect;
 						break;
 				}
@@ -113,7 +124,7 @@ namespace Exchanger {
 					throw asio::system_error(error);
 			}
 		} catch (std::exception &e) {
-			Log.e(ID, "Socket Server Exception: %s\n", e.what());
+			Log.e(sID, "Socket Server Exception: %s\n", e.what());
 			stream.close();
 		}
 	}
@@ -135,45 +146,50 @@ namespace Exchanger {
 			while (state != State::Disconnect) {
 				switch (state) {
 					case State::C_ConfirmID:
+						Log.d(cID, "Receiving server ID");
 						stream.read((char *)&id, sizeof(uint32_t));
 						if (id != eid) {
-							Log.w(ID, "Client: mismatched ID: %d", id);
+							Log.w(cID, "Mismatched ID: %d", id);
 							state = State::Disconnect;
 						} else {
+							Log.d(cID, "ID match, sending hash: &s", hash);
 							stream.write((char *)&hashLen, sizeof(uint16_t));
 							stream.write(hash.data(), hash.size());
 							state = State::C_AllocSpace;
 						}
 						break;
 					case State::C_AllocSpace:
+						Log.d(cID, "Receiving file size");
 						stream.read((char *)&fileSize, sizeof(uint64_t));
 						if (fileSize == 0) { // TODO: Check file size for mistmatch and also allocate file?
 							status = 0;
+							Log.w(cID, "Invalid filesize: %d", fileSize);
 							stream.write(&status, 0);
-							Log.w(ID, "Client: invalid filesize: %d", fileSize);
 							state = State::Disconnect;
 						} else {
 							fileIn = std::ofstream(filePath, std::ios_base::out | std::ios_base::binary);
 							status = 1;
+							Log.d(cID, "Valid filesize, notifying server: %d", fileSize);
 							stream.write(&status, 1);
 							state = State::Streaming;
 						}
 						break;
 					case State::Streaming:
+						Log.d(cID, "Streaming");
 						while (received > 0 && !fileIn.bad() && !stream.error()) {
 							stream.read(sBuf, block_size);
 							received = stream.gcount();
 							fileIn.write(sBuf, received);
 						}
-						Log.i(ID, "Client: Finished streaming");
+						Log.i(cID, "Finished streaming");
 						state = State::Disconnect;
 						break;
 					default:
-						Log.e(ID, "Unknown client connection state");
+						Log.e(cID, "Unknown connection state");
 						state = State::Disconnect;
 						break;
 				}
-				// TODO: double check final hash
+				// TODO: check final hash matches
 				error = stream.error();
 				if (error == asio::error::eof)			// Connection closed cleanly by peer.
 					break;
@@ -181,7 +197,7 @@ namespace Exchanger {
 					throw asio::system_error(error);
 			}
 		} catch (std::exception &e) {
-			Log.e(ID, "Socket Client Exception: %s\n", e.what());
+			Log.e(cID, "Socket Client Exception: %s\n", e.what());
 			stream.close();
 		}
 	}
