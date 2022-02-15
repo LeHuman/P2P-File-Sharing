@@ -60,8 +60,9 @@ int main() {
 
 	int id = rand();
 
-	Index::Indexer c(id, "localhost", 55555);
-	Exchanger::Exchanger e(id, 55555);
+	Exchanger::Exchanger e(id, 15642);
+
+	Index::Indexer c(id, 15642, "localhost", 55555);
 
 	peerIndexer = &c;
 	peerExchanger = &e;
