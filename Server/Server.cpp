@@ -3,10 +3,10 @@
 #include "Console.h"
 
 int main() {
-	Index::Indexer s = Index::Indexer(55555);
-	s.start();
+	//Index::Indexer s = Index::Indexer(55555);
+	//s.start();
 
-	Console::run(s);
+	//Console::run(s);
 
 	return 0;
 }
