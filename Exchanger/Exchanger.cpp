@@ -278,6 +278,16 @@ namespace Exchanger {
 	}
 
 	void Exchanger::connect(uint32_t id, string ip, uint16_t port, entryHash_t hash, string filePath) {
+		try {
+			Util::File file(filePath);
+			if (hash == file.hash) {
+				Log.e(ID, "File already exists locally, not downloading: %s", file.name.data());
+				return;
+			} else {
+				Log.w(ID, "File with same name exists locally, overwritting: %s", file.name.data());
+			}
+		} catch (const Util::File::not_regular_error &) {
+		}
 		std::lock_guard<std::mutex> lock(mutex);
 		queries.emplace(id, ip, port, hash, filePath);
 		cond.notify_all();

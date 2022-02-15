@@ -18,7 +18,7 @@ namespace Util {
 	File::File(string path) {
 		this->path = fs::path(path);
 		if (!fs::is_regular_file(this->path) || !fs::exists(this->path)) {
-			throw std::runtime_error("File is not regular or does not exist");
+			throw not_regular_error();
 		}
 		name = this->path.filename().string();
 		time = fs::last_write_time(this->path);
@@ -34,6 +34,8 @@ namespace Util {
 	}
 
 	string File::getHash() {
+		Log.d("File", "Hashing file: %s", name.data());
+
 		std::string _hash;
 		CryptoPP::SHA256 sha256;
 

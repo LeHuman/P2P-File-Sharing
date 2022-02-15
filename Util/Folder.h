@@ -18,6 +18,12 @@ namespace Util {
 		string prehash;
 		uintmax_t size = 0;
 
+		struct not_regular_error : public std::exception {
+			const char *what() const throw () {
+				return "File is not regular or does not exist";
+			}
+		};
+
 		enum class Status {
 			created, modified, erased
 		};
