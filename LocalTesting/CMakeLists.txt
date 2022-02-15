@@ -1,13 +1,3 @@
-﻿# CMakeList.txt : CMake project for P2P File Sharing, include source and define
-# project specific logic here.
-#
-cmake_minimum_required (VERSION 3.8)
+﻿add_executable (LocalTesting "LocalTesting.cpp" )
 
-# Add source to this project's executable.
-add_executable (LocalTesting "LocalTesting.cpp" )
-
-target_link_libraries(LocalTesting "Util" "Indexing" "Console" asio::asio "Exchanger")
-
-target_include_directories(LocalTesting PRIVATE "${PROJECT_SOURCE_DIR}/Util" "${PROJECT_SOURCE_DIR}/Indexing" "${PROJECT_SOURCE_DIR}/Console" "${PROJECT_SOURCE_DIR}/asio" "${PROJECT_SOURCE_DIR}/Exchanger")
-
-# TODO: Add tests and install targets if needed.
+target_link_libraries(LocalTesting "Util" "Indexing" "Console" "Exchanger")

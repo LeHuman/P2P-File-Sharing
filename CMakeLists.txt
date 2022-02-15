@@ -9,10 +9,14 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 if (UNIX)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -pthread -DASIO_HAS_IO_URING")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -pthread")
 endif (UNIX)
 
 # Include sub-projects.
+add_subdirectory("asio/asio/include")
+
+add_subdirectory("Exchanger")
+
 add_subdirectory ("LocalTesting")
 
 add_subdirectory("Util")
@@ -28,7 +32,3 @@ add_subdirectory("Server")
 add_subdirectory("Console")
 
 add_subdirectory("PicoSHA2")
-
-add_subdirectory("asio/asio/include")
-
-add_subdirectory("Exchanger")

@@ -2,4 +2,4 @@
 
 target_link_libraries(Util "PicoSHA2")
 
-target_include_directories(Util PRIVATE "${PROJECT_SOURCE_DIR}/PicoSHA2")
+target_include_directories(Util PUBLIC ".")
