@@ -4,9 +4,15 @@
 #include <iterator>
 #include <vector>
 
+#include "cryptlib.h"
+#include "channels.h"
+#include "filters.h"
+#include "files.h"
+#include "sha.h"
+#include "hex.h"
+
 #include "Folder.h"
 #include "Log.h"
-#include "picosha2.h"
 
 namespace Util {
 	File::File(string path) {
@@ -28,10 +34,16 @@ namespace Util {
 	}
 
 	string File::getHash() {
-		std::ifstream f(path, std::ios::binary);
-		std::vector<unsigned char> hash(picosha2::k_digest_size);
-		picosha2::hash256(f, hash.begin(), hash.end());
-		return picosha2::bytes_to_hex_string(hash.begin(), hash.end()); // TODO: Hash function is *very* slow
+		std::string _hash;
+		CryptoPP::SHA256 sha256;
+
+		CryptoPP::HashFilter hf(sha256, new CryptoPP::HexEncoder(new CryptoPP::StringSink(_hash)));
+
+		CryptoPP::ChannelSwitch cs;
+		cs.AddDefaultRoute(hf);
+
+		auto fs = CryptoPP::FileSource(path.string().data(), true /*pumpAll*/, new CryptoPP::Redirector(hf));
+		return _hash;
 	}
 
 	void Folder::operator()(fs::path path, std::chrono::duration<int, std::milli> delay, const std::function<void(File, File::Status)> &listener) {

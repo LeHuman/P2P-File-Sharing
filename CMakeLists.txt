@@ -8,6 +8,10 @@ project ("P2P File Sharing")
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
+if (CMAKE_BUILD_TYPE EQUAL "RELEASE")
+    add_compile_definitions(NDEBUG)
+endif(CMAKE_BUILD_TYPE EQUAL "RELEASE")
+
 if (UNIX)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -pthread")
 endif (UNIX)
@@ -31,4 +35,4 @@ add_subdirectory("Server")
 
 add_subdirectory("Console")
 
-add_subdirectory("PicoSHA2")
+add_subdirectory("cryptopp-cmake")

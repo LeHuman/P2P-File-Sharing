@@ -15,6 +15,16 @@
           "name": "RPCLIB_CXX_STANDARD",
           "value": "14",
           "type": "STRING"
+        },
+        {
+          "name": "BUILD_SHARED",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "BUILD_TESTING",
+          "value": "False",
+          "type": "BOOL"
         }
       ]
     },
@@ -35,6 +45,16 @@
           "name": "RPCLIB_CXX_STANDARD",
           "value": "14",
           "type": "STRING"
+        },
+        {
+          "name": "BUILD_SHARED",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "BUILD_TESTING",
+          "value": "False",
+          "type": "BOOL"
         }
       ]
     },
@@ -61,6 +81,16 @@
           "name": "RPCLIB_CXX_STANDARD",
           "value": "14",
           "type": "STRING"
+        },
+        {
+          "name": "BUILD_SHARED",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "BUILD_TESTING",
+          "value": "False",
+          "type": "BOOL"
         }
       ]
     }

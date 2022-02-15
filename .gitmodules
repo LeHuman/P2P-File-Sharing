@@ -7,3 +7,9 @@
 [submodule "asio"]
 	path = asio
 	url = https://github.com/LeHuman/asio
+[submodule "cryptopp"]
+	path = cryptopp
+	url = https://github.com/weidai11/cryptopp
+[submodule "cryptopp-cmake"]
+	path = cryptopp-cmake
+	url = https://github.com/LeHuman/cryptopp-cmake
