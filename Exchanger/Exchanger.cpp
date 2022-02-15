@@ -183,7 +183,7 @@ namespace Exchanger {
 
 	void Exchanger::receiver() { // TODO: set timeout
 		tcp::resolver resolver(*io_context);
-		while (true) {
+		while (running) {
 			std::unique_lock<std::mutex> lock(mutex);
 			if (cond.wait_for(lock, std::chrono::milliseconds(50), [&]() {return !queries.empty(); })) {
 				const struct query_t query = queries.front();
@@ -194,6 +194,7 @@ namespace Exchanger {
 			}
 			std::this_thread::sleep_for(std::chrono::milliseconds(50));
 		}
+		running = true;
 	}
 
 	void Exchanger::_startSocket(int id, uint16_t listeningPort) {
@@ -207,6 +208,18 @@ namespace Exchanger {
 			io_context->run();
 		} catch (std::exception &e) {
 			Log.e(ID, "Socket Exception: %s\n", e.what());
+		}
+	}
+
+	Exchanger::~Exchanger() {
+		stop();
+	}
+
+	void Exchanger::stop() {
+		if (io_context != nullptr)
+			io_context->stop();
+		running = false;
+		while (!running) {
 		}
 	}
 

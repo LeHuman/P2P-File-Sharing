@@ -26,7 +26,9 @@ namespace Exchanger {
 	};
 
 	class Exchanger {
-		asio::io_context *io_context;
+		asio::io_context *io_context = nullptr;
+
+		bool running = true;
 
 		std::mutex mutex;
 		std::condition_variable cond;
@@ -40,7 +42,10 @@ namespace Exchanger {
 		void _startSocket(int id, uint16_t listeningPort);
 
 	public:
+		~Exchanger();
 		Exchanger(int id, uint16_t listeningPort);
+
+		void stop();
 
 		void connect(Index::conn_t conn, int id, entryHash_t hash, string filePath);
 
