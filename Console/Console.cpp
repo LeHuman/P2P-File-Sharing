@@ -36,7 +36,7 @@ namespace Console {
 			return true;
 
 		if (func == "q" || func == "quit" || func == "exit") {
-			Log.e(ID, "Exiting");
+			Log.i(ID, "Exiting");
 			return false;
 		}
 
