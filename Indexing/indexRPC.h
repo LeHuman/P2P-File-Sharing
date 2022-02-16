@@ -29,7 +29,8 @@ namespace Index {
 		rpc::client *clt = nullptr;
 		rpc::server *srv = nullptr;
 		Index::Database *database = nullptr;
-		Index::conn_t conn;
+		Index::conn_t serverConn;
+		Index::conn_t peerConn;
 		bool isServer = false;
 		int id = -1;
 
@@ -45,17 +46,19 @@ namespace Index {
 
 		/**
 		 * @brief Create an Indexer Server
-		 * @param port port used to listen on
+		 * @param port port this indexing server should listen on
 		*/
 		Indexer(uint16_t port);
 
 		/**
 		 * @brief Create an Indexer Client
-		 * @param id unique id identifying this client
-		 * @param ip ip to connect to
-		 * @param port port to connect to
+		 * @param id	Unique ID identifying this client
+		 * @param cIP	The client IP address other peers should connect to
+		 * @param cPort The client Port other peers should connect to
+		 * @param sIP	The indexing server IP address this client should connect to
+		 * @param sPort The indexing server Port this client should use
 		*/
-		Indexer(int id, string ip, uint16_t port);
+		Indexer(int id, string cIP, uint16_t cPort, string sIP, uint16_t sPort);
 
 		/**
 		 * @brief Start the server/client connection

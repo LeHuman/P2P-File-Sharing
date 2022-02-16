@@ -62,16 +62,16 @@ int main() {
 
 	Exchanger::Exchanger e(id, 15642);
 
-	Index::Indexer c(id, 15642, "localhost", 55555);
+	//Index::Indexer c(id, 15642, "localhost", 55555);
 
-	peerIndexer = &c;
+	//peerIndexer = &c;
 	peerExchanger = &e;
 
-	c.start();
+	//c.start();
 
 	Util::watchFolder("../../../../testFolder", 1000, listener);
 
-	Console::run(c, e);
+	//Console::run(c, e);
 
 	return 0;
 }

@@ -16,15 +16,18 @@ namespace Index {
 	Indexer::Indexer(uint16_t port) {
 		srv = new rpc::server(port);
 		database = new Database();
-		conn.port = port;
+		serverConn.ip = "127.0.0.1";
+		serverConn.port = port;
 		isServer = true;
 		bindFunctions();
 	}
 
-	Indexer::Indexer(int id, string ip, uint16_t port) {
+	Indexer::Indexer(int id, string cIP, uint16_t cPort, string sIP, uint16_t sPort) {
 		this->id = id;
-		conn.ip = ip;
-		conn.port = port;
+		peerConn.ip = cIP;
+		peerConn.port = cPort;
+		serverConn.ip = sIP;
+		serverConn.port = sPort;
 		isServer = false;
 	}
 
@@ -58,7 +61,7 @@ namespace Index {
 			srv->async_run(std::thread::hardware_concurrency());
 		} else {
 			Log.i("Indexer", "Running Client");
-			clt = new rpc::client(conn.ip, conn.port);
+			clt = new rpc::client(serverConn.ip, serverConn.port);
 			clt->set_timeout(6000);
 			try {
 				clt->call(k_Ping);
@@ -83,13 +86,13 @@ namespace Index {
 	bool Indexer::registry(string entryName, entryHash_t hash) {
 		if (isServer)
 			return false;
-		return clt->call(k_Register, id, conn, entryName, hash).as<bool>();
+		return clt->call(k_Register, id, peerConn, entryName, hash).as<bool>();
 	}
 
 	bool Indexer::deregister(entryHash_t hash) {
 		if (isServer)
 			return false;
-		return clt->call(k_Deregister, id, conn, hash).as<bool>();
+		return clt->call(k_Deregister, id, peerConn, hash).as<bool>();
 	}
 
 	EntryResults Indexer::search(string query) {

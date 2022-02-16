@@ -46,7 +46,7 @@ std::uniform_int_distribution<std::mt19937::result_type> rndBool(0, 3);
 void threadedTest(string ip, uint16_t port) {
 	vector<thread *> threads;
 
-	Index::Indexer indexer(rndN(rng), ip, port);
+	Index::Indexer indexer(rndN(rng),"NotAnActualAddress", 1337, ip, port);
 	indexer.start();
 
 	for (size_t i = 0; i < 16; i++) {
@@ -94,34 +94,34 @@ void tieredThreadTest(string ip, uint16_t port) {
 #include <rpc/rpc_error.h>
 
 int main() {
-	//Index::Indexer s(55555);
-	//Index::Indexer c(321, "localhost", 55555);
+	Index::Indexer s(55555);
+	Index::Indexer c(321, "localhost", 41567, "localhost", 55555);
 	//Index::Indexer c2(123, "localhost", 55555);
 
 	Exchanger::Exchanger e(321, 41567);
-	Exchanger::Exchanger e2(123, 46214);
+	//Exchanger::Exchanger e2(123, 46214);
 
-	//s.start();
-	//c.start();
+	s.start();
+	c.start();
 	//c2.start();
 	//s.stop();
 
 	//tieredThreadTest("localhost", 55555);
 
-	//threadedTest("localhost", 55555);
-	//threadedTest("localhost", 55555);
-	//threadedTest("localhost", 55555);
-	//threadedTest("localhost", 55555);
+	threadedTest("localhost", 55555);
+	threadedTest("localhost", 55555);
+	threadedTest("localhost", 55555);
+	threadedTest("localhost", 55555);
 
-	Util::File file("../../../../testFolder2/file.bin");
+	//Util::File file("../../../../testFolder2/file.bin");
 
-	e.addLocalFile(file);
-	e2.connect(321, "localhost", 41567, file.hash, "../../../../testFolder/file-copy.bin");
+	//e.addLocalFile(file);
+	//e2.connect(321, "localhost", 41567, file.hash, "../../../../testFolder/file-copy.bin");
 
 	//c.registry(file.name, file.hash);
 
-	while (true) {
-	}
+	/*while (true) {
+	}*/
 
-	//Console::run(c, e);
+	Console::run(c, e);
 }
