@@ -254,6 +254,7 @@ namespace Exchanger {
 			}
 			std::this_thread::sleep_for(std::chrono::milliseconds(50));
 		}
+		Log.d(ID, "stopped receiving peer requests");
 		running = true;
 	}
 
@@ -280,6 +281,7 @@ namespace Exchanger {
 			io_context->stop();
 		running = false;
 		while (!running) {
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		}
 	}
 

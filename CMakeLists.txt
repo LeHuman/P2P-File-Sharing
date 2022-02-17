@@ -8,10 +8,6 @@ project ("P2P File Sharing")
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-if (CMAKE_BUILD_TYPE EQUAL "RELEASE")
-    add_compile_definitions(NDEBUG)
-endif()
-
 if (UNIX)
     set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
     set(THREADS_PREFER_PTHREAD_FLAG TRUE)

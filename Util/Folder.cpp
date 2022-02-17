@@ -74,6 +74,7 @@ namespace Util {
 			}
 			std::this_thread::sleep_for(delay);
 		}
+		Log.d("Folder", "Stopped watching path for changes");
 		running = true;
 	}
 
@@ -87,7 +88,8 @@ namespace Util {
 
 	void Folder::stop() {
 		running = false;
-		while (!running) {
+		while (running == false) {
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		}
 	}
 }
