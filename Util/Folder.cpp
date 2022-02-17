@@ -49,7 +49,7 @@ namespace Util {
 	}
 
 	void Folder::operator()(fs::path path, std::chrono::duration<int, std::milli> delay, const std::function<void(File, File::Status)> &listener) {
-		while (running) {
+		while (running) { // TODO: ignore files that are being downloaded
 			auto it = files.begin();
 			while (it != files.end()) {
 				if (!fs::exists(it->first)) {
