@@ -46,5 +46,5 @@ namespace Util {
 		void operator()(fs::path path, std::chrono::duration<int, std::milli> delay, const std::function<void(File, File::Status)> &listener);
 	};
 
-	void watchFolder(string path, int delay, const std::function<void(File, File::Status)> &listener);
+	std::thread *watchFolder(string path, const std::function<void(File, File::Status)> &listener, int delay = 500);
 }

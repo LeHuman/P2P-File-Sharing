@@ -59,7 +59,7 @@ namespace Util {
 					it++;
 				}
 			}
-			for (auto &file : fs::recursive_directory_iterator(path)) {
+			for (auto &file : fs::recursive_directory_iterator(path)) { // TODO: concurrent file indexing
 				auto current_file_last_write_time = fs::last_write_time(file);
 				string path = file.path().string();
 				if (!files.contains(path)) {
@@ -76,20 +76,7 @@ namespace Util {
 		}
 	}
 
-	std::thread *current = nullptr;
-
-	void watchFolder(string path, int delay, const std::function<void(File, File::Status)> &listener) {
-		if (current != nullptr) {
-			Log.w("Folder", "Already watching a folder");
-			return;
-		}
-		Folder fld = Folder();
-		current = new std::thread(fld, path, std::chrono::duration<int, std::milli>(delay), listener);
-	}
-
-	void stopFolder() {
-		if (current != nullptr) {
-			delete current;
-		}
+	std::thread *watchFolder(string path, const std::function<void(File, File::Status)> &listener, int delay) {
+		return new std::thread(Folder(), path, std::chrono::duration<int, std::milli>(delay), listener);
 	}
 }

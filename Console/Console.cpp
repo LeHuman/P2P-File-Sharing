@@ -12,20 +12,15 @@ namespace Console {
 
 	static const string ID = "Console";
 
-	string prompt = "Console";
-	string line;
-
-	vector<parserFunc*> parsers;
-
-	void setPrompt(string prompt) {
-		Console::prompt = prompt;
+	void Console::setPrompt(string prompt) {
+		this->prompt = prompt;
 	}
 
-	void addParser(parserFunc &parser) {
+	void Console::addParser(parserFunc &parser) {
 		parsers.push_back(parser);
 	}
 
-	vector<string> tokenize() {
+	static vector<string> tokenize(string line) {
 		size_t pos = 0;
 		vector<string> tokens;
 		while ((pos = line.find(' ')) != string::npos) {
@@ -37,8 +32,8 @@ namespace Console {
 		return tokens;
 	}
 
-	bool interpret(Index::Indexer &indexer, Exchanger::Exchanger &exchanger) {
-		vector<string> tokens = tokenize();
+	static bool interpret(string &line, std::vector<parserFunc *> &parsers, Index::Indexer *indexer, Exchanger::Exchanger *exchanger) {
+		vector<string> tokens = tokenize(line);
 		transform(tokens[0].begin(), tokens[0].end(), tokens[0].begin(), ::tolower);
 		string func = tokens[0];
 
@@ -57,13 +52,13 @@ namespace Console {
 		return true;
 	}
 
-	void run(Index::Indexer &indexer, Exchanger::Exchanger &exchanger) {
+	void Console::run(Index::Indexer *indexer, Exchanger::Exchanger *exchanger) {
 		Log(ID, "Console start!");
 		while (true) {
 			std::cout << " " << prompt << " > ";
 			std::getline(std::cin, line);
 			try {
-				if (!interpret(indexer, exchanger))
+				if (!interpret(line, parsers, indexer, exchanger))
 					break;
 			} catch (const std::exception &e) {
 				Log.e(ID, e.what());

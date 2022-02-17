@@ -5,11 +5,16 @@
 #include <time.h>
 #include <random>
 
-#include "rpc/server.h"
+#include <rpc/server.h>
+#include <rpc/rpc_error.h>
 
 #include "Log.h"
+#include "Peer.h"
 #include "index.h"
+#include "Console.h"
+#include "Parsers.h"
 #include "indexRPC.h"
+#include "Exchanger.h"
 
 using std::vector;
 using std::string;
@@ -46,7 +51,7 @@ std::uniform_int_distribution<std::mt19937::result_type> rndBool(0, 3);
 void threadedTest(string ip, uint16_t port) {
 	vector<thread *> threads;
 
-	Index::Indexer indexer(rndN(rng),"NotAnActualAddress", 1337, ip, port);
+	Index::Indexer indexer(rndN(rng), "NotAnActualAddress", 1337, ip, port);
 	indexer.start();
 
 	for (size_t i = 0; i < 16; i++) {
@@ -89,41 +94,23 @@ void tieredThreadTest(string ip, uint16_t port) {
 	}
 }
 
-#include "Console.h"
-#include "Parsers.h"
-#include "Exchanger.h"
-#include <rpc/rpc_error.h>
-
 int main() {
+	//tieredThreadTest("localhost", 55555);
+
+	//threadedTest("localhost", 55555);
+	//threadedTest("localhost", 55555);
+	//threadedTest("localhost", 55555);
+	//threadedTest("localhost", 55555);
+
 	Index::Indexer s(55555);
-	Index::Indexer c(321, "localhost", 41567, "localhost", 55555);
-	Index::Indexer c2(123, "localhost", 34897, "localhost", 55555);
-	
-	Exchanger::Exchanger e(321, 41567, "../../../../testFolder");
-	//Exchanger::Exchanger e2(123, 46214);
+
+	Peer c(321, "localhost", 46873, "localhost", 55555, "../../../../testFolder");
+	Peer c2(123, "localhost", 37864, "localhost", 55555, "../../../../testFolder2");
 
 	s.start();
 	c.start();
 	c2.start();
-	//s.stop();
 
-	//Util::watchFolder("../../../../testFolder", 1000, listener);
-
-	//tieredThreadTest("localhost", 55555);
-
-	threadedTest("localhost", 55555);
-	//threadedTest("localhost", 55555);
-	//threadedTest("localhost", 55555);
-	//threadedTest("localhost", 55555);
-
-	//Util::File file("../../../../testFolder2/file.bin");
-
-	//e.addLocalFile(file);
-	//e2.download(321, "localhost", 41567, file.hash, "../../../../testFolder/file-copy.bin");
-
-	//c.registry(file.name, file.hash);
-
-	Console::setPrompt("Client");
-	Console::addParser(indexRPCFunc);
-	Console::run(c, e);
+	c.console();
+	c2.console();
 }

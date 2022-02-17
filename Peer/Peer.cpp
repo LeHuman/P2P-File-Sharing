@@ -1,77 +1,91 @@
-﻿#include <string>
-
+﻿#include "Parsers.h"
 #include "Folder.h"
-#include "indexRPC.h"
-#include "Log.h"
-#include "Console.h"
-#include "Exchanger.h"
+#include "Peer.h"
 
 using std::string;
 
-const string ID = "Peer";
+static const string _ID = "Peer";
 
-Index::Indexer *peerIndexer;
-Exchanger::Exchanger *peerExchanger;
-
-void registerFile(Index::Indexer &indexer, string fileName, Index::entryHash_t hash) {
+void Peer::registerFile(Index::Indexer &indexer, string fileName, Index::entryHash_t hash) {
 	bool registered = indexer.registry(fileName, hash);
 	if (registered) {
-		Log.i(ID, "Registered hash: %s", fileName.data());
+		Log.i(_ID, "Registered hash: %s", fileName.data());
 	} else {
-		Log.e(ID, "Unable to registered hash: %s", fileName.data());
+		Log.e(_ID, "Unable to registered hash: %s", fileName.data());
 	}
 }
 
-void deregisterFile(Index::Indexer &indexer, Index::entryHash_t hash) {
+void Peer::deregisterFile(Index::Indexer &indexer, Index::entryHash_t hash) {
 	bool deregistered = indexer.deregister(hash);
 	if (deregistered) {
-		Log.i(ID, "Deregisted hash: %s", hash.data());
+		Log.i(_ID, "Deregisted hash: %s", hash.data());
 	} else {
-		Log.e(ID, "Unable to deregister hash: %s", hash.data());
+		Log.e(_ID, "Unable to deregister hash: %s", hash.data());
 	}
 }
 
-void listener(Util::File file, Util::File::Status status) { // TODO: not thead safe, peers can connect with outdated info between calls
+void Peer::listener(Util::File file, Util::File::Status status) { // TODO: not thead safe, peers can connect with outdated info between calls
 	if (!std::filesystem::is_regular_file(std::filesystem::path(file.path)) && status != Util::File::Status::erased) {
 		return;
 	}
 
 	switch (status) {
 		case Util::File::Status::created:
-			registerFile(*peerIndexer, file.path.filename().string(), file.hash);
-			peerExchanger->addLocalFile(file);
+			registerFile(*indexer, file.path.filename().string(), file.hash);
+			exchanger->addLocalFile(file);
 			break;
 		case Util::File::Status::erased:
-			peerExchanger->removeLocalFile(file);
-			deregisterFile(*peerIndexer, file.hash);
+			exchanger->removeLocalFile(file);
+			deregisterFile(*indexer, file.hash);
 			break;
 		case Util::File::Status::modified:
-			deregisterFile(*peerIndexer, file.prehash);
-			peerExchanger->updateLocalFile(file);
-			registerFile(*peerIndexer, file.path.filename().string(), file.hash);
+			deregisterFile(*indexer, file.prehash);
+			exchanger->updateLocalFile(file);
+			registerFile(*indexer, file.path.filename().string(), file.hash);
 			break;
 		default:
-			Log.e(ID, "Unknown file status: %s", file.path.filename().string().data());
+			Log.e(_ID, "Unknown file status: %s", file.path.filename().string().data());
 	}
 }
 
-int main() {
-	srand((unsigned int)time(NULL));
+Peer::Peer(uint32_t id, std::string externalIP, uint16_t listeningPort, std::string indexingIP, uint16_t indexingPort, std::string downloadPath) :id { id }, externalIP { externalIP }, listeningPort { listeningPort }, indexingIP { indexingIP }, indexingPort { indexingPort }, downloadPath { downloadPath }{
+	_console.setPrompt("Client");
+	_console.addParser(indexRPCFunc);
+}
 
-	int id = rand();
+Peer::~Peer() {
+	stop();
+}
 
-	//Exchanger::Exchanger e(id, 15642);
+void Peer::console() {
+	if (folderWatcher == nullptr) {
+		start();
+	}
+	_console.run(indexer, exchanger);
+}
 
-	//Index::Indexer c(id, 15642, "localhost", 55555);
+void Peer::start() {
+	if (folderWatcher != nullptr) {
+		Log.w(_ID, "Already started");
+		return;
+	}
 
-	//peerIndexer = &c;
-	//peerExchanger = &e;
+	indexer = new Index::Indexer(id, externalIP, listeningPort, indexingIP, indexingPort);
+	indexer->start();
+	exchanger = new Exchanger::Exchanger(id, listeningPort, downloadPath);
+	folderWatcher = new std::thread(Util::Folder(), downloadPath, std::chrono::duration<int, std::milli>(500), [&](Util::File file, Util::File::Status status) {listener(file, status); });
+}
 
-	//c.start();
-
-	Util::watchFolder("../../../../testFolder", 1000, listener);
-
-	//Console::run(c, e);
-
-	return 0;
+void Peer::stop() {
+	if (folderWatcher != nullptr)
+		delete folderWatcher;
+	if (exchanger != nullptr)
+		delete exchanger;
+	if (indexer != nullptr) {
+		indexer->stop();
+		delete indexer;
+	}
+	indexer = nullptr;
+	exchanger = nullptr;
+	folderWatcher = nullptr;
 }

@@ -298,12 +298,12 @@ namespace Exchanger {
 		std::filesystem::path filePath = downloadPath;
 		filePath /= results.fileName;
 		try {
-			Util::File file(downloadPath);
-			if (hash == file.hash) {
-				Log.e(ID, "File already exists locally, not downloading: %s", file.name.data());
+			auto localFile = localFiles.find(hash);
+			if (localFile != localFiles.end()) { // TODO: Check if file with same name exists
+				Log.e(ID, "File already exists locally, not downloading: %s", localFile->second.name.data());
 				return;
-			} else {
-				Log.w(ID, "File with same name exists locally, overwritting: %s", file.name.data());
+				//} else {
+					//Log.w(ID, "File with same name exists locally, overwritting: %s", localFile->second.name.data());
 			}
 		} catch (const Util::File::not_regular_error &) {
 		}
