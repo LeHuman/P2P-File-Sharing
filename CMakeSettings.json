@@ -45,6 +45,11 @@
           "name": "BUILD_SHARED",
           "value": "false",
           "type": "BOOL"
+        },
+        {
+          "name": "RPCLIB_CXX_STANDARD",
+          "value": "14",
+          "type": "STRING"
         }
       ]
     },
@@ -93,6 +98,11 @@
           "name": "BUILD_SHARED",
           "value": "false",
           "type": "BOOL"
+        },
+        {
+          "name": "RPCLIB_CXX_STANDARD",
+          "value": "14",
+          "type": "STRING"
         }
       ],
       "inheritEnvironments": [ "linux_x64" ],
@@ -142,6 +152,11 @@
           "name": "BUILD_SHARED",
           "value": "false",
           "type": "BOOL"
+        },
+        {
+          "name": "RPCLIB_CXX_STANDARD",
+          "value": "14",
+          "type": "STRING"
         }
       ],
       "inheritEnvironments": [ "linux_arm" ],
@@ -198,6 +213,11 @@
           "name": "BUILD_SHARED",
           "value": "false",
           "type": "BOOL"
+        },
+        {
+          "name": "RPCLIB_CXX_STANDARD",
+          "value": "14",
+          "type": "STRING"
         }
       ],
       "inheritEnvironments": [ "msvc_x64_x64" ]
@@ -246,6 +266,11 @@
           "name": "BUILD_SHARED",
           "value": "false",
           "type": "BOOL"
+        },
+        {
+          "name": "RPCLIB_CXX_STANDARD",
+          "value": "14",
+          "type": "STRING"
         }
       ],
       "inheritEnvironments": [ "linux_arm" ],
@@ -302,6 +327,11 @@
           "name": "BUILD_SHARED",
           "value": "false",
           "type": "BOOL"
+        },
+        {
+          "name": "RPCLIB_CXX_STANDARD",
+          "value": "14",
+          "type": "STRING"
         }
       ],
       "inheritEnvironments": [ "linux_x64" ],
@@ -359,6 +389,11 @@
           "name": "BUILD_SHARED",
           "value": "false",
           "type": "BOOL"
+        },
+        {
+          "name": "RPCLIB_CXX_STANDARD",
+          "value": "14",
+          "type": "STRING"
         }
       ],
       "inheritEnvironments": [ "linux_x64" ],
