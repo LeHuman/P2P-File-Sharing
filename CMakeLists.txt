@@ -13,7 +13,11 @@ if (CMAKE_BUILD_TYPE EQUAL "RELEASE")
 endif(CMAKE_BUILD_TYPE EQUAL "RELEASE")
 
 if (UNIX)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -pthread")
+    set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
+    set(THREADS_PREFER_PTHREAD_FLAG TRUE)
+    find_package(Threads REQUIRED)
+
+    link_libraries(Threads::Threads)
 endif (UNIX)
 
 # Include sub-projects.
@@ -36,5 +40,3 @@ add_subdirectory("Server")
 add_subdirectory("Console")
 
 add_subdirectory("cryptopp-cmake")
-
-add_subdirectory("Client")

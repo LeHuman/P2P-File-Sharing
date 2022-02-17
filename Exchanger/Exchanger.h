@@ -3,6 +3,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <condition_variable>
 #include <string>
 #include <queue>
 
