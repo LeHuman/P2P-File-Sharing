@@ -48,7 +48,7 @@ namespace Util {
 		return _hash;
 	}
 
-	void Folder::operator()(fs::path path, std::chrono::duration<int, std::milli> delay, const std::function<void(File, File::Status)> &listener) {
+	void Folder::run(fs::path path, const std::function<void(File, File::Status)> &listener, std::chrono::duration<int, std::milli> delay) {
 		while (running) { // TODO: ignore files that are being downloaded
 			auto it = files.begin();
 			while (it != files.end()) {
@@ -74,9 +74,20 @@ namespace Util {
 			}
 			std::this_thread::sleep_for(delay);
 		}
+		running = true;
 	}
 
-	std::thread *watchFolder(string path, const std::function<void(File, File::Status)> &listener, int delay) {
-		return new std::thread(Folder(), path, std::chrono::duration<int, std::milli>(delay), listener);
+	Folder::Folder(string path, const std::function<void(File, File::Status)> &listener, int delay) {
+		std::thread(&Folder::run, this, path, listener, std::chrono::duration<int, std::milli>(delay)).detach();
+	}
+
+	Folder::~Folder() {
+		stop();
+	}
+
+	void Folder::stop() {
+		running = false;
+		while (!running) {
+		}
 	}
 }

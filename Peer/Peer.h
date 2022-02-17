@@ -18,7 +18,7 @@ class Peer {
 	uint16_t indexingPort;
 	std::string downloadPath;
 
-	std::thread *folderWatcher = nullptr;
+	Util::Folder *folderWatcher = nullptr;
 	Index::Indexer *indexer = nullptr;
 	Exchanger::Exchanger *exchanger = nullptr;
 	Console::Console _console;

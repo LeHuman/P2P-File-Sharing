@@ -55,19 +55,24 @@ namespace Util {
 	*/
 	class Folder {
 		std::unordered_map<string, File> files;
-
-	public:
 		bool running = true;
 
-		void operator()(fs::path path, std::chrono::duration<int, std::milli> delay, const std::function<void(File, File::Status)> &listener);
-	};
+		void run(fs::path path, const std::function<void(File, File::Status)> &listener, std::chrono::duration<int, std::milli> delay);
 
-	/**
-	 * @brief Create a thread that actively watches a folder for changes
-	 * @param path The directory to watch
-	 * @param listener The listener function to run on changes
-	 * @param delay Delay between updates in milliseconds
-	 * @return pointer to the thread that is running
-	*/
-	std::thread *watchFolder(string path, const std::function<void(File, File::Status)> &listener, int delay = 500);
+	public:
+		~Folder();
+
+		/**
+		 * @brief Creates a new folder watcher
+		 * @param path The directory to watch
+		 * @param listener The listener function to run on changes
+		 * @param delay Delay between updates in milliseconds
+		*/
+		Folder(string path, const std::function<void(File, File::Status)> &listener, int delay = 500);
+
+		/**
+		 * @brief Stop this folder watcher from running
+		*/
+		void stop();
+	};
 }

@@ -73,7 +73,7 @@ void Peer::start() {
 	indexer = new Index::Indexer(id, externalIP, listeningPort, indexingIP, indexingPort);
 	indexer->start();
 	exchanger = new Exchanger::Exchanger(id, listeningPort, downloadPath);
-	folderWatcher = new std::thread(Util::Folder(), downloadPath, std::chrono::duration<int, std::milli>(500), [&](Util::File file, Util::File::Status status) {listener(file, status); });
+	folderWatcher = new Util::Folder(downloadPath, [&](Util::File file, Util::File::Status status) {listener(file, status); });
 }
 
 void Peer::stop() {
