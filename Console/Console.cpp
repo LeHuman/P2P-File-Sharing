@@ -48,7 +48,9 @@ namespace Console {
 			return false;
 		}
 
-		Log.e(ID, "Action does not exist: %s", func.data());
+		if (func != "")
+			Log.e(ID, "Action does not exist: %s", func.data());
+
 		return true;
 	}
 
