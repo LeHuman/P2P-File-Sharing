@@ -104,7 +104,10 @@ int main() {
 
 	Index::Indexer s(55555);
 
-	// ./Client -i 1211 -c 44563 -s "192.168.1.231" -e 55555 -f "../../../../testFolder"
+	//./Client -i 1211 -c 44563 -s "192.168.1.200" -e 55555 -f "../../../../testFolder2"
+	//./Client -i 156 -c 42910 -s "192.168.1.200" -e 55555 -f "../../../../testFolder"
+	//./Client -i 791 -c 44910 -s "192.168.1.200" -e 55555 -f "../../../../testFolder"
+
 	Peer c(321, 46873, "192.168.1.231", 55555, "../../../../testFolder");
 	Peer c2(123, 37864, "192.168.1.231", 55555, "../../../../testFolder2");
 
@@ -113,5 +116,5 @@ int main() {
 	c2.start();
 
 	c.console();
-	c2.console();
+	//c2.console();
 }
