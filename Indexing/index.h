@@ -117,7 +117,11 @@ namespace Index {
 	};
 
 	using EntryResults = vector<Entry::searchEntry>;
-	using PeerResults = vector<Peer::searchEntry>;
+	struct PeerResults {
+		string fileName;
+		std::vector<Peer::searchEntry> peers;
+	};
+	using PeerResults = struct PeerResults;
 
 	class Database {
 		std::mutex mutex; // TODO: use shared_mutex or optimize to allow registry and deregister run concurrently

@@ -252,12 +252,14 @@ namespace Index {
 
 		if (got == entries.end()) {
 			mutex.unlock();
+			results.fileName = "NULL";
 			Log.w("Request", "No entries found with hash: %s", hash.data());
 		} else {
-			Log.i("Request", "Entry found\n\tname: %s\n\thash: %s", got->second->name.c_str(), hash.data());
+			results.fileName = got->second->name;
+			Log.i("Request", "Entry found\n\tname: %s\n\thash: %s", results.fileName.c_str(), hash.data());
 
 			for (const Peer *peer : got->second->refrences) {
-				results.emplace_back(peer->id, peer->connInfo);
+				results.peers.emplace_back(peer->id, peer->connInfo);
 			}
 			mutex.unlock();
 		}

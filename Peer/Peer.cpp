@@ -31,7 +31,7 @@ void deregisterFile(Index::Indexer &indexer, Index::entryHash_t hash) {
 	}
 }
 
-void listener(Util::File file, Util::File::Status status) {
+void listener(Util::File file, Util::File::Status status) { // TODO: not thead safe, peers can connect with outdated info between calls
 	if (!std::filesystem::is_regular_file(std::filesystem::path(file.path)) && status != Util::File::Status::erased) {
 		return;
 	}

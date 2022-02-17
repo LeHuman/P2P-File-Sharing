@@ -17,12 +17,10 @@ namespace Exchanger {
 	using Index::entryHash_t;
 
 	struct query_t {
-		uint32_t id;
-		int port;
-		string ip;
-		string filePath;
+		Index::PeerResults results;
+		string downloadPath;
 		entryHash_t hash;
-		query_t(uint32_t id, string ip, int port, string hash, string filePath) : id { id }, ip { ip }, port { port }, hash { hash }, filePath { filePath }{};
+		query_t(Index::PeerResults results, string hash, string downloadPath) : results { results }, hash { hash }, downloadPath { downloadPath }{};
 	};
 
 	class Exchanger {
@@ -31,25 +29,27 @@ namespace Exchanger {
 		bool running = true;
 
 		std::mutex mutex;
+		string downloadPath;
 		std::condition_variable cond;
 		std::queue<struct query_t> queries;
 		std::unordered_map<Index::entryHash_t, Util::File> localFiles;
 
 		void fileSender(uint32_t id, asio::ip::tcp::iostream stream);
-		void fileReceiver(asio::ip::tcp::iostream stream, uint32_t eid, entryHash_t hash, string filePath);
+		bool fileReceiver(asio::ip::tcp::iostream &stream, uint32_t eid, entryHash_t hash, string downloadPath);
 		void listener(uint32_t id, uint16_t port);
+		void peerResolver(Index::PeerResults peers, Index::entryHash_t hash, string downloadPath);
 		void receiver();
 		void _startSocket(uint32_t id, uint16_t listeningPort);
 
 	public:
 		~Exchanger();
-		Exchanger(uint32_t id, uint16_t listeningPort);
+		Exchanger(uint32_t id, uint16_t listeningPort, string downloadPath);
 
 		void stop();
 
-		void connect(Index::conn_t conn, uint32_t id, entryHash_t hash, string filePath);
+		void setDownloadPath(string downloadPath);
 
-		void connect(uint32_t id, string ip, uint16_t port, entryHash_t hash, string filePath);
+		void download(Index::PeerResults peers, entryHash_t hash);
 
 		void addLocalFile(Util::File file);
 

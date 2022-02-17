@@ -90,6 +90,7 @@ void tieredThreadTest(string ip, uint16_t port) {
 }
 
 #include "Console.h"
+#include "Parsers.h"
 #include "Exchanger.h"
 #include <rpc/rpc_error.h>
 
@@ -109,19 +110,21 @@ int main() {
 	//tieredThreadTest("localhost", 55555);
 
 	threadedTest("localhost", 55555);
-	threadedTest("localhost", 55555);
-	threadedTest("localhost", 55555);
-	threadedTest("localhost", 55555);
+	//threadedTest("localhost", 55555);
+	//threadedTest("localhost", 55555);
+	//threadedTest("localhost", 55555);
 
 	//Util::File file("../../../../testFolder2/file.bin");
 
 	//e.addLocalFile(file);
-	//e2.connect(321, "localhost", 41567, file.hash, "../../../../testFolder/file-copy.bin");
+	//e2.download(321, "localhost", 41567, file.hash, "../../../../testFolder/file-copy.bin");
 
 	//c.registry(file.name, file.hash);
 
 	/*while (true) {
 	}*/
 
+	Console::setPrompt("Client");
+	Console::addParser(indexRPCFunc);
 	Console::run(c, e);
 }

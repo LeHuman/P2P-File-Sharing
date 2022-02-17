@@ -136,11 +136,11 @@ namespace Exchanger {
 		}
 	}
 
-	void Exchanger::fileReceiver(tcp::iostream stream, uint32_t eid, entryHash_t hash, string filePath) {
+	bool Exchanger::fileReceiver(tcp::iostream &stream, uint32_t eid, entryHash_t hash, string downloadPath) {
 		State state = State::C_ConfirmID;
 		uint16_t hashLen = hash.size();
 		uint64_t fileSize = 0;
-		char status = 0;
+		char status = true;
 		std::streamsize received = 1;
 
 		asio::error_code error;
@@ -157,6 +157,7 @@ namespace Exchanger {
 						stream.read((char *)&id, sizeof(uint32_t));
 						if (id != eid) {
 							Log.w(cID, "Mismatched ID: %d", id);
+							status = false;
 							state = State::Disconnect;
 						} else {
 							Log.d(cID, "ID match, sending hash: %s", hash.data());
@@ -168,14 +169,13 @@ namespace Exchanger {
 					case State::C_AllocSpace:
 						Log.d(cID, "Receiving file size");
 						stream.read((char *)&fileSize, sizeof(uint64_t));
-						if (fileSize == 0) { // TODO: Check file size for mistmatch and also allocate file?
-							status = 0;
+						if (fileSize == 0) { // TODO: Check file size for mistmatch and also allocate file / check for space
+							status = false;
 							Log.w(cID, "Invalid filesize: %d", fileSize);
 							stream.write(&status, 0);
 							state = State::Disconnect;
 						} else {
-							fileIn = std::ofstream(filePath, std::ios_base::out | std::ios_base::binary);
-							status = 1;
+							fileIn = std::ofstream(downloadPath, std::ios_base::out | std::ios_base::binary);
 							Log.d(cID, "Valid filesize, notifying server: %d", fileSize);
 							stream.write(&status, 1);
 							state = State::Streaming;
@@ -193,6 +193,7 @@ namespace Exchanger {
 						break;
 					default:
 						Log.e(cID, "Unknown connection state");
+						status = false;
 						state = State::Disconnect;
 						break;
 				}
@@ -206,7 +207,9 @@ namespace Exchanger {
 		} catch (std::exception &e) {
 			Log.e(cID, "Socket Client Exception: %s\n", e.what());
 			stream.close();
+			return false;
 		}
+		return status;
 	}
 
 	void OnResolve(asio::error_code &err, tcp::resolver::results_type type) {
@@ -230,6 +233,15 @@ namespace Exchanger {
 		}
 	}
 
+	void Exchanger::peerResolver(Index::PeerResults results, Index::entryHash_t hash, string downloadPath) { // TODO: smarter peer selection & chunked file downloading
+		for (Index::Peer::searchEntry& item : results.peers) {
+			Log.d(ID, "Connecting to peer: %d", item.id);
+			tcp::iostream stream(item.connInfo.ip, std::to_string(item.connInfo.port));
+			if (fileReceiver(stream, item.id, hash, downloadPath))
+				return;
+		}
+	}
+
 	void Exchanger::receiver() { // TODO: set timeout
 		tcp::resolver resolver(*io_context);
 		while (running) {
@@ -238,8 +250,7 @@ namespace Exchanger {
 				const struct query_t query = queries.front();
 				queries.pop();
 
-				tcp::iostream stream(query.ip, std::to_string(query.port));
-				thread(&Exchanger::fileReceiver, this, std::move(stream), query.id, query.hash, query.filePath).detach();
+				thread(&Exchanger::peerResolver, this, std::move(query.results), query.hash, query.downloadPath).detach();
 			}
 			std::this_thread::sleep_for(std::chrono::milliseconds(50));
 		}
@@ -271,15 +282,20 @@ namespace Exchanger {
 		while (!running) {
 		}
 	}
+	
+	void Exchanger::setDownloadPath(string downloadPath) {
+		this->downloadPath = downloadPath;
+	}
 
-	Exchanger::Exchanger(uint32_t id, uint16_t listeningPort) {
+	Exchanger::Exchanger(uint32_t id, uint16_t listeningPort, string downloadPath) {
+		setDownloadPath(downloadPath);
 		io_context = new asio::io_context(thread::hardware_concurrency());
 		thread(&Exchanger::_startSocket, this, id, listeningPort).detach();
 	}
 
-	void Exchanger::connect(uint32_t id, string ip, uint16_t port, entryHash_t hash, string filePath) {
+	void Exchanger::download(Index::PeerResults peers, entryHash_t hash) {
 		try {
-			Util::File file(filePath);
+			Util::File file(downloadPath);
 			if (hash == file.hash) {
 				Log.e(ID, "File already exists locally, not downloading: %s", file.name.data());
 				return;
@@ -289,12 +305,8 @@ namespace Exchanger {
 		} catch (const Util::File::not_regular_error &) {
 		}
 		std::lock_guard<std::mutex> lock(mutex);
-		queries.emplace(id, ip, port, hash, filePath);
+		queries.emplace(peers, hash, downloadPath); // TODO: Allow per request download path
 		cond.notify_all();
-	}
-
-	void Exchanger::connect(Index::conn_t conn, uint32_t id, entryHash_t hash, string filePath) { // TODO: make conn_t have everything
-		connect(id, conn.ip, conn.port, hash, filePath);
 	}
 
 	void Exchanger::addLocalFile(Util::File file) {
