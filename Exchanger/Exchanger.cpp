@@ -14,6 +14,7 @@
 #include <vector>
 #include <queue>
 #include <fstream>
+#include <filesystem>
 
 #include <asio/read.hpp>
 #include <asio/write.hpp>
@@ -234,7 +235,7 @@ namespace Exchanger {
 	}
 
 	void Exchanger::peerResolver(Index::PeerResults results, Index::entryHash_t hash, string downloadPath) { // TODO: smarter peer selection & chunked file downloading
-		for (Index::Peer::searchEntry& item : results.peers) {
+		for (Index::Peer::searchEntry &item : results.peers) {
 			Log.d(ID, "Connecting to peer: %d", item.id);
 			tcp::iostream stream(item.connInfo.ip, std::to_string(item.connInfo.port));
 			if (fileReceiver(stream, item.id, hash, downloadPath))
@@ -282,7 +283,7 @@ namespace Exchanger {
 		while (!running) {
 		}
 	}
-	
+
 	void Exchanger::setDownloadPath(string downloadPath) {
 		this->downloadPath = downloadPath;
 	}
@@ -293,7 +294,9 @@ namespace Exchanger {
 		thread(&Exchanger::_startSocket, this, id, listeningPort).detach();
 	}
 
-	void Exchanger::download(Index::PeerResults peers, entryHash_t hash) {
+	void Exchanger::download(Index::PeerResults results, entryHash_t hash) {
+		std::filesystem::path filePath = downloadPath;
+		filePath /= results.fileName;
 		try {
 			Util::File file(downloadPath);
 			if (hash == file.hash) {
@@ -305,7 +308,7 @@ namespace Exchanger {
 		} catch (const Util::File::not_regular_error &) {
 		}
 		std::lock_guard<std::mutex> lock(mutex);
-		queries.emplace(peers, hash, downloadPath); // TODO: Allow per request download path
+		queries.emplace(results, hash, filePath.string()); // TODO: Allow per request download path
 		cond.notify_all();
 	}
 

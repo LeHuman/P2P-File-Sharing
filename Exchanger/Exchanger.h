@@ -49,7 +49,7 @@ namespace Exchanger {
 
 		void setDownloadPath(string downloadPath);
 
-		void download(Index::PeerResults peers, entryHash_t hash);
+		void download(Index::PeerResults results, entryHash_t hash);
 
 		void addLocalFile(Util::File file);
 

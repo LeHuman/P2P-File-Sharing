@@ -60,12 +60,12 @@ int main() {
 
 	int id = rand();
 
-	Exchanger::Exchanger e(id, 15642);
+	//Exchanger::Exchanger e(id, 15642);
 
 	//Index::Indexer c(id, 15642, "localhost", 55555);
 
 	//peerIndexer = &c;
-	peerExchanger = &e;
+	//peerExchanger = &e;
 
 	//c.start();
 

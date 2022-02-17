@@ -120,6 +120,8 @@ namespace Index {
 	struct PeerResults {
 		string fileName;
 		std::vector<Peer::searchEntry> peers;
+
+		MSGPACK_DEFINE_ARRAY(fileName, peers);
 	};
 	using PeerResults = struct PeerResults;
 

@@ -97,15 +97,17 @@ void tieredThreadTest(string ip, uint16_t port) {
 int main() {
 	Index::Indexer s(55555);
 	Index::Indexer c(321, "localhost", 41567, "localhost", 55555);
-	//Index::Indexer c2(123, "localhost", 55555);
-
-	Exchanger::Exchanger e(321, 41567);
+	Index::Indexer c2(123, "localhost", 34897, "localhost", 55555);
+	
+	Exchanger::Exchanger e(321, 41567, "../../../../testFolder");
 	//Exchanger::Exchanger e2(123, 46214);
 
 	s.start();
 	c.start();
-	//c2.start();
+	c2.start();
 	//s.stop();
+
+	//Util::watchFolder("../../../../testFolder", 1000, listener);
 
 	//tieredThreadTest("localhost", 55555);
 
@@ -120,9 +122,6 @@ int main() {
 	//e2.download(321, "localhost", 41567, file.hash, "../../../../testFolder/file-copy.bin");
 
 	//c.registry(file.name, file.hash);
-
-	/*while (true) {
-	}*/
 
 	Console::setPrompt("Client");
 	Console::addParser(indexRPCFunc);
