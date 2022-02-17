@@ -16,6 +16,10 @@ if (UNIX)
     link_libraries(Threads::Threads)
 endif (UNIX)
 
+set(RPCLIB_CXX_STANDARD "14")
+set(BUILD_SHARED False)
+set(BUILD_TESTING False)
+
 # Include sub-projects.
 add_subdirectory("asio/asio/include")
 
