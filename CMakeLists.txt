@@ -37,6 +37,8 @@ add_subdirectory("Peer")
 
 add_subdirectory("Server")
 
+add_subdirectory("Client")
+
 add_subdirectory("Console")
 
 add_subdirectory("cryptopp-cmake")
