@@ -1,7 +1,10 @@
 #include <thread>
 
+#include "rpc/server.h"
+
 #include "indexRPC.h"
 #include <rpc/rpc_error.h>
+#include <rpc/this_session.h>
 
 namespace Index {
 	Indexer::~Indexer() {
@@ -16,15 +19,15 @@ namespace Index {
 	Indexer::Indexer(uint16_t port) {
 		srv = new rpc::server(port);
 		database = new Database();
-		serverConn.ip = "127.0.0.1";
+		serverConn.ip = "127.0.0.1"; // DNC
 		serverConn.port = port;
 		isServer = true;
 		bindFunctions();
 	}
 
-	Indexer::Indexer(int id, string cIP, uint16_t cPort, string sIP, uint16_t sPort) {
+	Indexer::Indexer(int id, uint16_t cPort, string sIP, uint16_t sPort) {
 		this->id = id;
-		peerConn.ip = cIP;
+		peerConn.ip = "127.0.0.1"; // Modified when connected to an indexing server
 		peerConn.port = cPort;
 		serverConn.ip = sIP;
 		serverConn.port = sPort;
@@ -33,12 +36,17 @@ namespace Index {
 
 	void Indexer::bindFunctions() {
 		if (isServer) {
-			srv->bind(k_Register, [&](int id, conn_t connection, string entryName, entryHash_t hash) -> bool { return database->registry(id, connection, entryName, hash); });
-			srv->bind(k_Deregister, [&](int id, conn_t connection, entryHash_t hash) -> bool {return database->deregister(id, connection, hash); });
+			srv->bind(k_Register, [&](int id, conn_t connection, string entryName, entryHash_t hash) -> bool {
+				connection.ip = rpc::this_session().remoteAddr;
+				return database->registry(id, connection, entryName, hash);
+					  });
+			srv->bind(k_Deregister, [&](int id, conn_t connection, entryHash_t hash) -> bool {
+				connection.ip = rpc::this_session().remoteAddr;
+				return database->deregister(id, connection, hash); });
 			srv->bind(k_Search, [&](string query) -> EntryResults {return database->search(query); });
 			srv->bind(k_List, [&]() -> EntryResults {return database->list(); });
 			srv->bind(k_Request, [&](entryHash_t hash) -> PeerResults {return database->request(hash); });
-			srv->bind(k_Ping, [&]() {return true; });
+			srv->bind(k_Ping, [&]() {return true;});
 		}
 	}
 

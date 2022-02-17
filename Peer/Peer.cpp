@@ -18,13 +18,13 @@ void Peer::registerFile(Index::Indexer &indexer, string fileName, Index::entryHa
 void Peer::deregisterFile(Index::Indexer &indexer, Index::entryHash_t hash) {
 	bool deregistered = indexer.deregister(hash);
 	if (deregistered) {
-		Log.i(_ID, "Deregisted hash: %s", hash.data());
+		Log.i(_ID, "Deregistered hash: %s", hash.data());
 	} else {
 		Log.e(_ID, "Unable to deregister hash: %s", hash.data());
 	}
 }
 
-void Peer::listener(Util::File file, Util::File::Status status) { // TODO: not thead safe, peers can connect with outdated info between calls
+void Peer::listener(Util::File file, Util::File::Status status) { // TODO: not thread safe, peers can potentially connect with outdated info between calls
 	if (!std::filesystem::is_regular_file(std::filesystem::path(file.path)) && status != Util::File::Status::erased) {
 		return;
 	}
@@ -48,7 +48,7 @@ void Peer::listener(Util::File file, Util::File::Status status) { // TODO: not t
 	}
 }
 
-Peer::Peer(uint32_t id, std::string externalIP, uint16_t listeningPort, std::string indexingIP, uint16_t indexingPort, std::string downloadPath) :id { id }, externalIP { externalIP }, listeningPort { listeningPort }, indexingIP { indexingIP }, indexingPort { indexingPort }, downloadPath { downloadPath }{
+Peer::Peer(uint32_t id, uint16_t listeningPort, std::string indexingIP, uint16_t indexingPort, std::string downloadPath) :id { id }, listeningPort { listeningPort }, indexingIP { indexingIP }, indexingPort { indexingPort }, downloadPath { downloadPath }{
 	_console.setPrompt("Client");
 	_console.addParser(indexRPCFunc);
 }
@@ -70,7 +70,7 @@ void Peer::start() {
 		return;
 	}
 
-	indexer = new Index::Indexer(id, externalIP, listeningPort, indexingIP, indexingPort);
+	indexer = new Index::Indexer(id, listeningPort, indexingIP, indexingPort);
 	indexer->start();
 	exchanger = new Exchanger::Exchanger(id, listeningPort, downloadPath);
 	folderWatcher = new Util::Folder(downloadPath, [&](Util::File file, Util::File::Status status) {listener(file, status); });

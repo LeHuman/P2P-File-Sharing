@@ -51,7 +51,7 @@ std::uniform_int_distribution<std::mt19937::result_type> rndBool(0, 3);
 void threadedTest(string ip, uint16_t port) {
 	vector<thread *> threads;
 
-	Index::Indexer indexer(rndN(rng), "NotAnActualAddress", 1337, ip, port);
+	Index::Indexer indexer(rndN(rng), 1337, ip, port);
 	indexer.start();
 
 	for (size_t i = 0; i < 16; i++) {
@@ -104,8 +104,9 @@ int main() {
 
 	Index::Indexer s(55555);
 
-	Peer c(321, "localhost", 46873, "localhost", 55555, "../../../../testFolder");
-	Peer c2(123, "localhost", 37864, "localhost", 55555, "../../../../testFolder2");
+	// ./Client -i 1211 -c 44563 -s "192.168.1.231" -e 55555 -f "../../../../testFolder"
+	Peer c(321, 46873, "192.168.1.231", 55555, "../../../../testFolder");
+	Peer c2(123, 37864, "192.168.1.231", 55555, "../../../../testFolder2");
 
 	s.start();
 	c.start();

@@ -11,7 +11,7 @@ namespace Util {
 	namespace fs = std::filesystem;
 
 	/**
-	 * @brief Helper struct that represents a file, ensures the file exists and hashes it on creation
+	 * @brief Helper represents a file, it ensures a file exists and hashes it on creation
 	*/
 	struct File {
 		fs::path path;
@@ -37,7 +37,7 @@ namespace Util {
 
 		/**
 		 * @brief Update this file's time, size and hash, used when modified
-		 * @param time The new timestamp of the file
+		 * @param time The new time-stamp of the file
 		 * @param size The new size of the file
 		*/
 		void update(fs::file_time_type time, uintmax_t size);
@@ -51,7 +51,7 @@ namespace Util {
 	};
 
 	/**
-	 * @brief Class that continously monitors a folder and calls a listener function on changes
+	 * @brief Class that continuously monitors a folder and calls a listener function on changes
 	*/
 	class Folder {
 		std::unordered_map<string, File> files;
@@ -66,7 +66,7 @@ namespace Util {
 		 * @brief Creates a new folder watcher
 		 * @param path The directory to watch
 		 * @param listener The listener function to run on changes
-		 * @param delay Delay between updates in milliseconds
+		 * @param delay The Delay between updates in milliseconds
 		*/
 		Folder(string path, const std::function<void(File, File::Status)> &listener, int delay = 500);
 
