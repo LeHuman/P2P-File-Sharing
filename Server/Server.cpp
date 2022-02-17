@@ -2,11 +2,13 @@
 #include "Log.h"
 #include "Console.h"
 
-int main() {
-	//Index::Indexer s = Index::Indexer(55555);
-	//s.start();
+int main(int argc, char *argv[]) {
+	Index::Indexer s(55555);
+	s.start();
 
-	//Console::run(s);
+	while (true) {
+		std::this_thread::sleep_for(std::chrono::seconds(1));
+	}
 
 	return 0;
 }

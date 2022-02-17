@@ -61,13 +61,19 @@ namespace Index {
 			srv->async_run(std::thread::hardware_concurrency());
 		} else {
 			Log.i("Indexer", "Running Client");
-			clt = new rpc::client(serverConn.ip, serverConn.port);
-			clt->set_timeout(6000);
-			try {
-				clt->call(k_Ping);
-				Log.i("Indexer", "Server pinged! %dms", ping());
-			} catch (const rpc::system_error &e) {
-				Log.f("Indexer", "Unable to create client");
+			while (true) {
+				try {
+					clt = new rpc::client(serverConn.ip, serverConn.port);
+					//clt->set_timeout(6000);
+					clt->call(k_Ping);
+					Log.i("Indexer", "Server pinged! %dms", ping());
+					break;
+				} catch (const rpc::system_error &e) {
+					Log.f("Indexer", "Unable to create client: %s", e.what());
+					delete clt;
+					Log.i("Indexer", "Attempting to connect again in 5 seconds");
+					std::this_thread::sleep_for(std::chrono::seconds(5));
+				}
 			}
 		}
 	}
