@@ -15,9 +15,9 @@ int main(int argc, char *argv[]) {
 
 		cmd.parse(argc, argv);
 
-		Peer c(idArg.getValue(), cipArg.getValue(), cpArg.getValue(), sipArg.getValue(), spArg.getValue(), fldrArg.getValue());
-		c.start();
-		c.console();
+		Peer c(idArg.getValue(), cipArg.getValue(), cpArg.getValue(), sipArg.getValue(), spArg.getValue(), fldrArg.getValue()); // Create a Peer object
+		c.start(); // Start the Peer object
+		c.console(); // Start the Peer's interactive prompt
 	} catch (TCLAP::ArgException &e) {
 		std::cerr << "error: " << e.error() << " for arg " << e.argId() << std::endl;
 	}

@@ -25,6 +25,9 @@ namespace Index {
 	const string k_Request = "request";
 	const string k_Ping = "ping";
 
+	/**
+	 * @brief Indexer class used for communicating with server/client indexing using RPC
+	*/
 	class Indexer {
 		rpc::client *clt = nullptr;
 		rpc::server *srv = nullptr;

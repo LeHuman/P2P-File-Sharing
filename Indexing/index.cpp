@@ -269,16 +269,4 @@ namespace Index {
 
 		return results;
 	}
-
-	void Database::logEntries() {
-		for (Index::Entry::searchEntry entry : list()) {
-			Log.i("Lister", "Name:%s\n\tpeers:%lld\n\ti:%s\n\tH:%s", entry.name.c_str(), entry.peers, entry.firstIndexedString().data(), entry.hash.data());
-		}
-	}
-
-	void Database::logSearch(string query) {
-		for (Index::Entry::searchEntry entry : search(query)) {
-			Log.i("Searcher", "Name:%s\n\tpeers:%lld\n\ti:%s\n\tH:%s", entry.name.c_str(), entry.peers, entry.firstIndexedString().data(), entry.hash.data());
-		}
-	}
 }

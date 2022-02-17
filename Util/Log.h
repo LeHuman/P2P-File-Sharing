@@ -7,7 +7,6 @@
 #include <stdio.h>
 
 namespace Util {
-
 	namespace Logging {
 		using std::string;
 
@@ -27,6 +26,9 @@ namespace Util {
 		static const string L_ERROR = C_RED + "ERROR" + C_RESET + "  ";
 		static const string L_FATAL = C_UNDER + C_RED + "FATAL" + C_RESET + "  ";
 
+		/**
+		 * @brief This struct enables an easy way to log, organize and color messages on the terminal
+		*/
 		struct Log_t {
 		private:
 			std::mutex print_l;
@@ -78,4 +80,7 @@ namespace Util {
 	}
 }
 
+/**
+ * @brief Logging object that can be used globally
+*/
 extern struct Util::Logging::Log_t Log;
