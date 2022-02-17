@@ -17,8 +17,8 @@ if (UNIX)
 endif (UNIX)
 
 set(RPCLIB_CXX_STANDARD "14")
-set(BUILD_SHARED False)
-set(BUILD_TESTING False)
+set(BUILD_SHARED OFF)
+set(BUILD_TESTING OFF)
 
 # Include sub-projects.
 add_subdirectory("asio/asio/include")
