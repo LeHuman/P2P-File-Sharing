@@ -1,6 +1,6 @@
 [submodule "rpclib"]
 	path = rpclib
-	url = https://github.com/rpclib/rpclib
+	url = https://github.com/LeHuman/rpclib
 [submodule "asio"]
 	path = asio
 	url = https://github.com/LeHuman/asio
