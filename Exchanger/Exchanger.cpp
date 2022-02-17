@@ -227,7 +227,7 @@ namespace Exchanger {
 			tcp::iostream stream;
 			acceptor.accept(stream.socket());
 
-			auto endpnt = stream.socket().local_endpoint();
+			auto endpnt = stream.socket().remote_endpoint();
 			Log.d(ID, "p2p conn: %s:%d", endpnt.address().to_string().data(), endpnt.port());
 			thread(&Exchanger::fileSender, this, id, std::move(stream)).detach();
 		}
