@@ -10,3 +10,6 @@
 [submodule "cryptopp-cmake"]
 	path = cryptopp-cmake
 	url = https://github.com/LeHuman/cryptopp-cmake
+[submodule "tclap"]
+	path = tclap
+	url = https://git.code.sf.net/p/tclap/code

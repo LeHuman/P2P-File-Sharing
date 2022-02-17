@@ -42,3 +42,6 @@ add_subdirectory("Client")
 add_subdirectory("Console")
 
 add_subdirectory("cryptopp-cmake")
+
+add_library(tclap INTERFACE)
+target_include_directories(tclap INTERFACE "tclap/include")

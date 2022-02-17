@@ -14,7 +14,6 @@
 #include "index.h"
 
 namespace Index {
-
 	inline std::tm localtime_xp(time_t timer) {
 		std::tm bt {};
 #if defined(__unix__)
@@ -101,7 +100,8 @@ namespace Index {
 				Log.w("Registry", "Peer already refrences entry\n\tID: %d\n\thash: %s", id, hash.data());
 				break;
 			case -1:
-				return false;
+				Log.w("Registry", "Peer and Entry already refrence each other\n\tID: %d\n\thash: %s", id, hash.data());
+				return true;
 		}
 
 		Log("Registry", "New\n\tID: %d\n\tname: %s%s\n\thash: %s\n", id, entryName.c_str(), (nameExists ? " -> " + saveName : "").c_str(), hash.data());
@@ -155,7 +155,7 @@ namespace Index {
 		int removed = 0;
 
 		if (!e->remove(p)) {
-			removed += 1; 
+			removed += 1;
 		}
 
 		if (!p->remove(e)) {
@@ -186,6 +186,9 @@ namespace Index {
 			case -2:
 				Log.w("Deregister", "Peer did not refrence entry\n\tID: %d\n\thash: %s", id, hash.data());
 				break;
+			case -1:
+				Log.w("Deregister", "Peer and Entry already don't reference each other\n\tID: %d\n\thash: %s", id, hash.data());
+				return true;
 		}
 
 		if (removed != 0) {
