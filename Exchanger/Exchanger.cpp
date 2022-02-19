@@ -240,6 +240,7 @@ namespace Exchanger {
 			if (fileReceiver(stream, item.id, hash, downloadPath))
 				return;
 		}
+        Log.f(ID, "Failed to request file: %s", downloadPath.data());
 	}
 
 	void Exchanger::receiver() { // TODO: set timeout

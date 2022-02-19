@@ -10,7 +10,7 @@ int main(int argc, char *argv[]) {
 		TCLAP::ValueArg<std::string> sipArg("s", "serverIP", "The indexing server IP address this client should connect to", true, "localhost", "ip address", cmd);
 		TCLAP::ValueArg<uint16_t> spArg("e", "serverPort", "The indexing server Port this client should use", true, 55555, "int", cmd);
 		TCLAP::ValueArg<uint16_t> cpArg("c", "clientPort", "The client Port other peers should connect to", true, 55555, "int", cmd);
-		TCLAP::ValueArg<std::string> fldrArg("f", "downloadFolder", "The local folder files should be uploaded and downloaded to", true, "localhost", "ip address", cmd);
+		TCLAP::ValueArg<std::string> fldrArg("f", "downloadFolder", "The local folder files should be uploaded and downloaded to", true, "localhost", "directory", cmd);
 
 		cmd.parse(argc, argv);
 
