@@ -197,7 +197,7 @@ namespace Index {
 
 		Log("Deregister", "New\n\tID: %d\n\tname: %s\n\thash: %s\n", id, saveName.c_str(), hash.data());
 
-		return removed;
+		return removed == 0;
 	}
 
 	EntryResults Database::list() {
