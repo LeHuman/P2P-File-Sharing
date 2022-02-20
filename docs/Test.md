@@ -18,6 +18,8 @@ header-includes: |
 \pagenumbering{gobble}
 \pagenumbering{arabic}
 
+\graphicspath{ {img/} }
+
 **CS 550 - Spring 2022**  
 **Isaias Rivera**  
 **A20442116**
@@ -74,10 +76,43 @@ Max Time = `166.0021375µs @ 72 peers`
 
 \newpage
 
-### Cross Compiled function test
+## Cross Compiled function test
 
-Because I did not have time to automate testing across various devices, this test only serves as a demonstration of the functionality working across various devices.
-It does not necessarily show concurrent operations.
+Because I did not have time to automate testing across various devices, this test mostly serves as a demonstration of the functionality working across various devices.
+The same test peer code is compiled on each device.
+Each device only ran one test peer and they all ran concurrently using the same server.
+I did not get to compiling on a Mac.
 
-This test was done manually using the interactive console on each device.
+### Device Metrics
 
+#### AMD CPU - Windows 10 - x86_64
+
+This client ran on the same machine as the server.
+
+\includegraphics[width=\textwidth]{localCC.png}
+
+#### AMD CPU - Windows Subsystem for Linux - Debian Bookworm - x86_64
+
+This client ran on the same machine as the server, but has additional overhead from having a compatibility layer.
+
+\includegraphics[width=\textwidth]{WSLCC.png}
+
+#### Intel CPU - Debian Bullseye - x86_64
+
+This client ran on the same network as the server.
+
+\includegraphics[width=\textwidth]{DebianCC.png}
+
+#### Raspberry Pi 4 - Debian Bullseye - ARM
+
+This client ran on the same network as the server.
+
+\includegraphics[width=\textwidth]{RPICC.png}
+
+#### Android w/ Termux - Debian Bullseye - ARM
+
+This client ran on the same network as the server but through WIFI.
+
+Took, by far, the longest with a maximum of 45ms.
+
+\includegraphics[width=\textwidth]{AndroidCC.png}
