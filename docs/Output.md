@@ -33,8 +33,11 @@ Note 2: Files are deleted, added, or modified by interacting with them directly.
 
 ## Server
 
+This is the output of the server when it was running. It shows whenever anything is happening on the server.
+It also prints relevant information to a request such as a file's hash, file name or a peer's ID.
+
 ```
-$ .\\Server.exe
+$ .\Server.exe
 [Indexer] INFO   : Running Server
 [Registry]        : New
         ID: 0
@@ -108,8 +111,26 @@ $ .\\Server.exe
 
 ## Client 1
 
+This is the output of client with the id of 1. On startup we can see that all the files in the appropriate folder were hashed and then indexed on the server automatically. Any user input is wherever there is a `Client >` followed by a command. Sometimes the prompt is finicky as it might get covered. In these cases I ensured to refresh the prompt and then type my command to make it clear.
+
+What exactly occurred on this client is as follows.
+
+1. `search copy`
+2. Show search results
+3. `request EE0F2CE65776190342FE013D46032A9D3BF7A23466CA808B42CCEA908084BC86`
+4. File already exists, show error
+5. Manually delete file
+6. `request EE0F2CE65776190342FE013D46032A9D3BF7A23466CA808B42CCEA908084BC86`
+7. Connect to first available peer and begin downloading procedure
+8. auto register newly downloaded file
+9. `list`
+10. Show every available file
+11. Respond to Client 0's request
+12. `q`
+13. Quit
+
 ```
-$ .\\Client.exe -i 1 -f 1
+$ .\Client.exe -i 1 -f 1
 [Indexer] INFO   : Running Client
 [Indexer] DEBUG  : Connecting to index server at: localhost:55555
 [Indexer] INFO   : Server pinged! 0.092000ms
@@ -197,8 +218,21 @@ Added on 20/02/2022 01:25:02
 
 ## Client 0
 
+This is the output of client with the id of 0. It is the same program as Client 1.
+
+What exactly occurred on this client is as follows.
+
+1. Respond to Client 1's request
+2. `search i`
+3. Show search results
+4. `request 25349FB263E07C0D107837A2CB661E79D18F0F88B9DEB7C67254C9C96C52450D`
+5. Connect to first available peer and begin downloading procedure
+6. auto register newly downloaded file
+7. `q`
+8. Quit
+
 ```
- .\\Client.exe -i 0 -f 0
+ .\Client.exe -i 0 -f 0
 [Indexer] INFO   : Running Client
 [Indexer] DEBUG  : Connecting to index server at: localhost:55555
 [Indexer] INFO   : Server pinged! 0.112000ms
