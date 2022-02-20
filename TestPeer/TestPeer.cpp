@@ -175,6 +175,11 @@ int main(int argc, char *argv[]) {
 			if (fileCount > 5 && rndDel(rng)) {
 				c -= deleteRndFile(folder);
 			}
+
+			if (fileCount > 5 && rndDel(rng)) {
+				outputText(testStrs[rndStr(rng)], (fp / ("testFile" + std::to_string(rndID(rng)) + ".txt")).string());
+			}
+
 			auto ping = indexer.ping().count();
 			c--;
 			csv << ping << ',';
