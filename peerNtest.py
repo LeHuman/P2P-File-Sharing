@@ -73,7 +73,7 @@ def main():
 
     clean()
 
-    for i in range(200, 1000, 100):
+    for i in list(range(3, 100)) + list(range(100, 500, 100)):
         runTest(i)
         peers.append(i)
         avgs.append(readCSVs())
