@@ -53,6 +53,7 @@ namespace Util {
 			auto it = files.begin();
 			while (it != files.end()) {
 				if (!fs::exists(it->first)) {
+					Log.d("Folder", "File deleted: %s", it->second.name.c_str());
 					listener(it->second, File::Status::erased);
 					try {
 						it = files.erase(it);
@@ -71,10 +72,12 @@ namespace Util {
 					string path = file.path().string();
 					if (!files.contains(path)) {
 						files[path] = File(file.path(), current_file_last_write_time, file.file_size());
+						Log.d("Folder", "File created: %s", files[path].name.c_str());
 						listener(files[path], File::Status::created);
 					} else {
 						if (files[path].time != current_file_last_write_time) {
 							files[path].update(current_file_last_write_time, file.file_size());
+							Log.d("Folder", "File modified: %s", files[path].name.c_str());
 							listener(files[path], File::Status::modified);
 						}
 					}

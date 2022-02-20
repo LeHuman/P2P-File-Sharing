@@ -11,7 +11,7 @@ void Peer::registerFile(Index::Indexer &indexer, string fileName, Index::entryHa
 	if (registered) {
 		Log.i(_ID, "Registered hash: %s", fileName.data());
 	} else {
-		Log.e(_ID, "Unable to registered hash: %s", fileName.data());
+		Log.e(_ID, "Unable to register hash: %s", fileName.data());
 	}
 }
 
