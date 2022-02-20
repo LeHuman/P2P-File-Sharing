@@ -26,9 +26,6 @@ header-includes: |
 
 # P2P File Sharing - Tests
 
-## Local Stress Test
-
-This is the main test which was only run locally on the same machines, both peer and server.
 A special binary is used which does not include the interactive terminal.
 Files are randomly generated from a pool of set strings, meaning, peers will have similar files.
 Peers also randomly delete files concurrent to the requests.
@@ -36,6 +33,8 @@ Due to the overwhelming number of requests to the filesystem, I had to put a del
 Otherwise, requests seem to hang and timeout.
 However, calls between peers, when they happen, are still concurrent.
 Additionally, one issue with the design is that the directory the program is watching will auto index files even if they are in the middle of downloading, this means files that take too long to download will actually be indexed in this half downloaded state. There are checks at the time for peer to peer connection, but ultimately these requests will fail as the file no longer exists by the time a request is made.
+
+It is not often but clients will sometimes give the error that they were unable to deregister a file but the indexing server actually did deregister the file.
 
 In every test, each peer aims to run 500 calls, either pinging, requesting, or deleting counts towards this.
 The binaries used are compiled as release.
@@ -45,6 +44,10 @@ I do not believe this occurred, at least in the tests shown here. Regardless, I 
 
 These tests were automated using a python script, which reads the csv file generated py the test programs and compiling it into averages.
 I then took these averages and graphed them in Excel.
+
+## Local Stress Test
+
+This is the main test which was run locally on the same machine, for both peer and server.
 
 \newpage
 
