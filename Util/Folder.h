@@ -68,7 +68,7 @@ namespace Util {
 		 * @param listener The listener function to run on changes
 		 * @param delay The Delay between updates in milliseconds
 		*/
-		Folder(string path, const std::function<void(File, File::Status)> &listener, int delay = 500);
+		Folder(string path, const std::function<void(File, File::Status)> &listener, int delay = 1000);
 
 		/**
 		 * @brief Stop this folder watcher from running

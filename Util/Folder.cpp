@@ -54,22 +54,32 @@ namespace Util {
 			while (it != files.end()) {
 				if (!fs::exists(it->first)) {
 					listener(it->second, File::Status::erased);
-					it = files.erase(it);
+					try {
+						it = files.erase(it);
+					} catch (const std::exception &) {
+						Log.w("Folder", "Failed to run erase command");
+						it++;
+					}
 				} else {
 					it++;
 				}
 			}
-			for (auto &file : fs::recursive_directory_iterator(path)) { // TODO: concurrent file indexing
-				auto current_file_last_write_time = fs::last_write_time(file);
-				string path = file.path().string();
-				if (!files.contains(path)) {
-					files[path] = File(file.path(), current_file_last_write_time, file.file_size());
-					listener(files[path], File::Status::created);
-				} else {
-					if (files[path].time != current_file_last_write_time) {
-						files[path].update(current_file_last_write_time, file.file_size());
-						listener(files[path], File::Status::modified);
+
+			for (auto &file : fs::directory_iterator(path)) { // TODO: concurrent file indexing
+				try {
+					auto current_file_last_write_time = fs::last_write_time(file);
+					string path = file.path().string();
+					if (!files.contains(path)) {
+						files[path] = File(file.path(), current_file_last_write_time, file.file_size());
+						listener(files[path], File::Status::created);
+					} else {
+						if (files[path].time != current_file_last_write_time) {
+							files[path].update(current_file_last_write_time, file.file_size());
+							listener(files[path], File::Status::modified);
+						}
 					}
+				} catch (const std::exception &) {
+					Log.w("Folder", "Failed to auto index file");
 				}
 			}
 			std::this_thread::sleep_for(delay);
@@ -89,7 +99,7 @@ namespace Util {
 	void Folder::stop() {
 		running = false;
 		while (running == false) {
-			std::this_thread::sleep_for(std::chrono::milliseconds(100));
+			std::this_thread::sleep_for(std::chrono::milliseconds(500));
 		}
 	}
 }
