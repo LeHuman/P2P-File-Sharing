@@ -1,4 +1,13 @@
-﻿// P2P File Sharing.cpp : Defines the entry point for the application.
+﻿/**
+ * @file LocalTesting.cpp
+ * @author IR
+ * @brief Program used only for testing
+ * @version 0.1
+ * @date 2022-02-20
+ * 
+ * @copyright Copyright (c) 2022
+ * 
+ */
 
 #include <thread>
 #include <string>

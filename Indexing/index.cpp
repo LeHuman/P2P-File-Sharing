@@ -1,3 +1,14 @@
+/**
+ * @file index.cpp
+ * @author IR
+ * @brief Source code for the Index module
+ * @version 0.1
+ * @date 2022-02-20
+ * 
+ * @copyright Copyright (c) 2022
+ * 
+ */
+
 #include <algorithm>
 #include <iostream>
 #include <string>

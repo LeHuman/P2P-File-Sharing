@@ -1,3 +1,14 @@
+/**
+ * @file index.h
+ * @author IR
+ * @brief Module that deals with indexing files
+ * @version 0.1
+ * @date 2022-02-20
+ * 
+ * @copyright Copyright (c) 2022
+ * 
+ */
+
 #pragma once
 
 #include <chrono>

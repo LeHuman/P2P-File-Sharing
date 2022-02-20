@@ -1,4 +1,15 @@
-﻿#include <stdio.h>
+﻿/**
+ * @file Console.cpp
+ * @author IR
+ * @brief The interactive console module source code
+ * @version 0.1
+ * @date 2022-02-20
+ * 
+ * @copyright Copyright (c) 2022
+ * 
+ */
+
+#include <stdio.h>
 #include <vector>
 #include <algorithm>
 
@@ -20,6 +31,12 @@ namespace Console {
 		parsers.push_back(parser);
 	}
 
+    /**
+     * @brief Get the tokens in a string
+     * 
+     * @param line the line to break up
+     * @return vector<string> Tokens
+     */
 	static vector<string> tokenize(string line) {
 		size_t pos = 0;
 		vector<string> tokens;
@@ -32,6 +49,16 @@ namespace Console {
 		return tokens;
 	}
 
+    /**
+     * @brief Interprets a message and runs every available parser until one returns true
+     * 
+     * @param line The user input
+     * @param parsers The parsers to use
+     * @param indexer The peer indexer
+     * @param exchanger The peer exchanger
+     * @return true valid input
+     * @return false invalid input
+     */
 	static bool interpret(string &line, std::vector<parserFunc *> &parsers, Index::Indexer *indexer, Exchanger::Exchanger *exchanger) {
 		vector<string> tokens = tokenize(line);
 		transform(tokens[0].begin(), tokens[0].end(), tokens[0].begin(), ::tolower);

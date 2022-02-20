@@ -1,3 +1,14 @@
+/**
+ * @file Log.h
+ * @author IR
+ * @brief The source code for the Log module
+ * @version 0.1
+ * @date 2022-02-20
+ * 
+ * @copyright Copyright (c) 2022
+ * 
+ */
+
 #pragma once
 
 #include <string>
@@ -77,15 +88,7 @@ namespace Util {
 			 * @param enable true to enable
 			*/
 			void enable(bool enable);
-
-			/*void test() {
-				operator()("Test", "Oui");
-				d("Test", "This");
-				i("Test", "Is");
-				w("Test", "A");
-				e("Test", "Test");
-				f("Test", "See?");
-			}*/
+            
 		};
 	}
 }

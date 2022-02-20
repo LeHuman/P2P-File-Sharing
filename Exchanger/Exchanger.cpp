@@ -1,5 +1,13 @@
-﻿// Exchanger.cpp : Source file for your target.
-//
+﻿/**
+ * @file Exchanger.cpp
+ * @author IR
+ * @brief The source code for the exchanger module
+ * @version 0.1
+ * @date 2022-02-20
+ * 
+ * @copyright Copyright (c) 2022
+ * 
+ */
 
 #include <iostream>
 #include <cstdlib>
@@ -50,6 +58,9 @@ namespace Exchanger {
 		stream.expires_after(std::chrono::seconds(5));
 	}
 
+    /**
+     * @brief The state machine for the peer that is sending a file
+     */
 	void Exchanger::fileSender(uint32_t id, tcp::iostream stream) {
 		State state = State::S_Accept;
 		uint16_t hashLen = 0;
@@ -146,6 +157,9 @@ namespace Exchanger {
 		}
 	}
 
+    /**
+     * @brief The state machine for the peer that is receiving a file
+     */
 	bool Exchanger::fileReceiver(tcp::iostream &stream, uint32_t eid, entryHash_t hash, string downloadPath) {
 		State state = State::C_ConfirmID;
 		uint16_t hashLen = hash.size();
@@ -226,14 +240,9 @@ namespace Exchanger {
 		return status;
 	}
 
-	void OnResolve(asio::error_code &err, tcp::resolver::results_type type) {
-		if (!err) {
-			std::cout << "resolved!";
-		} else {
-			std::cout << "error.";
-		}
-	}
-
+    /**
+     * @brief Threaded function that is constantly running, listening for peers to accept a socket connection to
+     */
 	void Exchanger::listener(uint32_t id, uint16_t port) {
 		tcp::acceptor acceptor(*io_context, tcp::endpoint(tcp::v4(), port));
 
@@ -248,6 +257,10 @@ namespace Exchanger {
 		}
 	}
 
+
+    /**
+     * @brief Given a list of peers, this threaded function will attempt to connect to peers until it downloads a file
+     */
 	void Exchanger::peerResolver(Index::PeerResults results, Index::entryHash_t hash, string downloadPath) { // TODO: smarter peer selection & chunked file downloading
 		for (Index::Peer::searchEntry &item : results.peers) {
 			Log.d(ID, "Connecting to peer: %d", item.id);
@@ -259,6 +272,9 @@ namespace Exchanger {
         Log.f(ID, "Failed to request file: %s", downloadPath.data());
 	}
 
+    /**
+     * @brief Threaded function that is constantly running, waiting for request to download a file
+     */
 	void Exchanger::receiver() { // TODO: set timeout
 		tcp::resolver resolver(*io_context);
 		while (running) {
@@ -275,6 +291,9 @@ namespace Exchanger {
 		running = true;
 	}
 
+    /**
+     * @brief Threaded function that runs relevant socket functions
+     */
 	void Exchanger::_startSocket(uint32_t id, uint16_t listeningPort) {
 		try {
 			asio::signal_set signals(*io_context, SIGINT, SIGTERM);
@@ -321,8 +340,6 @@ namespace Exchanger {
 			if (localFile != localFiles.end()) { // TODO: Check if file with same name exists
 				Log.e(ID, "File already exists locally, not downloading: %s", localFile->second.name.data());
 				return false;
-				//} else {
-					//Log.w(ID, "File with same name exists locally, overwriting: %s", localFile->second.name.data());
 			}
 		} catch (const Util::File::not_regular_error &) {
 		}

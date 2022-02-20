@@ -1,3 +1,14 @@
+/**
+ * @file Peer.h
+ * @author IR
+ * @brief Class that deals with everything a peer needs
+ * @version 0.1
+ * @date 2022-02-20
+ * 
+ * @copyright Copyright (c) 2022
+ * 
+ */
+
 #pragma once
 
 #include <string>

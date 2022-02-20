@@ -1,3 +1,14 @@
+/**
+ * @file Folder.h
+ * @author IR
+ * @brief This module is what deals with watching a folder for changes and auto-updating the index server
+ * @version 0.1
+ * @date 2022-02-20
+ * 
+ * @copyright Copyright (c) 2022
+ * 
+ */
+
 #pragma once
 
 #include <filesystem>

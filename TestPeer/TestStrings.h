@@ -1,4 +1,15 @@
-﻿#pragma once
+﻿/**
+ * @file TestStrings.h
+ * @author IR
+ * @brief Pool of strings used only for testing
+ * @version 0.1
+ * @date 2022-02-20
+ * 
+ * @copyright Copyright (c) 2022
+ * 
+ */
+
+#pragma once
 
 #include <string>
 #include <vector>

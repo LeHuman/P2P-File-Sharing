@@ -1,5 +1,13 @@
-﻿// TestPeer.cpp : Source file for your target.
-//
+﻿/**
+ * @file TestPeer.cpp
+ * @author IR
+ * @brief Automated Peer, used only for testing
+ * @version 0.1
+ * @date 2022-02-20
+ * 
+ * @copyright Copyright (c) 2022
+ * 
+ */
 
 #include <iostream>
 #include <fstream>

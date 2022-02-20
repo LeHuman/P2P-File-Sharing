@@ -1,4 +1,15 @@
-﻿#pragma once
+﻿/**
+ * @file Console.h
+ * @author IR
+ * @brief The interactive console module, handles user input and running the correct commands
+ * @version 0.1
+ * @date 2022-02-20
+ * 
+ * @copyright Copyright (c) 2022
+ * 
+ */
+
+#pragma once
 
 #include <stdio.h>
 #include <string>
@@ -19,7 +30,6 @@ namespace Console {
 	class Console {
 		string prompt = "Console";
 		string line;
-
 		std::vector<parserFunc *> parsers;
 	public:
 		/**

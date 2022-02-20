@@ -1,3 +1,14 @@
+/**
+ * @file indexRPC.h
+ * @author IR
+ * @brief Module that deals with communication between peer and server using RPC
+ * @version 0.1
+ * @date 2022-02-20
+ * 
+ * @copyright Copyright (c) 2022
+ * 
+ */
+
 #pragma once
 
 #include <vector>

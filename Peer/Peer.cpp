@@ -1,4 +1,15 @@
-﻿#include "Parsers.h"
+﻿/**
+ * @file Peer.cpp
+ * @author IR
+ * @brief Source code for the peer module
+ * @version 0.1
+ * @date 2022-02-20
+ * 
+ * @copyright Copyright (c) 2022
+ * 
+ */
+
+#include "Parsers.h"
 #include "Folder.h"
 #include "Peer.h"
 

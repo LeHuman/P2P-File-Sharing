@@ -1,4 +1,13 @@
-﻿// Exchanger.h : Header file for your target.
+﻿/**
+ * @file Exchanger.h
+ * @author IR
+ * @brief Exchanger module deals with handeling the communication between peers
+ * @version 0.1
+ * @date 2022-02-20
+ * 
+ * @copyright Copyright (c) 2022
+ * 
+ */
 
 #pragma once
 
@@ -80,10 +89,25 @@ namespace Exchanger {
 		*/
 		bool download(Index::PeerResults results, entryHash_t hash);
 
+        /**
+         * @brief Adds a file to the exchangers known list of files. Used to actually pass to another peer
+         * 
+         * @param file The file to store
+         */
 		void addLocalFile(Util::File file);
 
+        /**
+         * @brief Removes a file from the exchangers known list of files.
+         * 
+         * @param file The file to remove
+         */
 		void removeLocalFile(Util::File file);
 
+        /**
+         * @brief Updates a file if it was modified
+         * 
+         * @param file The file to update
+         */
 		void updateLocalFile(Util::File file);
 	};
 }

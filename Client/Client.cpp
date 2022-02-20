@@ -1,9 +1,21 @@
-﻿#include <tclap/CmdLine.h>
+﻿/**
+ * @file Client.cpp
+ * @author IR
+ * @brief The client executable
+ * @version 0.1
+ * @date 2022-02-20
+ * 
+ * @copyright Copyright (c) 2022
+ * 
+ */
+
+#include <tclap/CmdLine.h>
 
 #include "Peer.h"
 
 int main(int argc, char *argv[]) {
 	try {
+        // Get command line arguments using library
 		TCLAP::CmdLine cmd("Create a P2P Client", ' ');
 
 		TCLAP::ValueArg<uint32_t> idArg("i", "identity", "Unique ID identifying this client", true, 0, "int", cmd);

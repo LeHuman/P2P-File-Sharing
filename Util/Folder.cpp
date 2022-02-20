@@ -1,3 +1,14 @@
+/**
+ * @file Folder.cpp
+ * @author IR
+ * @brief Source code for the Folder module
+ * @version 0.1
+ * @date 2022-02-20
+ * 
+ * @copyright Copyright (c) 2022
+ * 
+ */
+
 #include <thread>
 #include <chrono>
 #include <fstream>
