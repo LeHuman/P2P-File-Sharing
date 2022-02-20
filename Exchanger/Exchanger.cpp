@@ -310,6 +310,7 @@ namespace Exchanger {
 		setDownloadPath(downloadPath);
 		io_context = new asio::io_context(thread::hardware_concurrency());
 		thread(&Exchanger::_startSocket, this, id, listeningPort).detach();
+		Log.d(ID, "Listening to port: %d", listeningPort);
 	}
 
 	bool Exchanger::download(Index::PeerResults results, entryHash_t hash) {
