@@ -108,6 +108,8 @@ Only the peer is really meant to interact with the program directly, they have v
   - Request a specific file, given the hash
 - `register` & `deregister`
   - Not allowed but still listed
+- `q` || `quit` || `exit`
+  - Stop the Interactive Console
 
 ## Program arguments
 
