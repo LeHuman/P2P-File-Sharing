@@ -38,7 +38,7 @@ The communication between peer and server is purely through RPC. This is because
 
 ### Hashing
 
-The main idea behind this design for indexing is that each file should be identified by it's hash first, name second. Meaning, each file on the indexing server has a unique hash, as files do, but multiple files can have the same name. This might not be the best way of doing it, however, at least for now, this is how I implemented it and gives me leeway for other indexing implementations.
+The main idea behind this design for indexing is that each file should be identified by it's hash first, name second. Meaning, each file on the indexing server has a unique hash, as files do, but multiple files can have the same name. This might not be the best way of doing it, however, at least for now, this is how I implemented it and gives me leeway for other indexing implementations. This decision does deviate somewhat from the initial assignment with the function `retrieve(file name) -- invoked by a peer to download a file from another peer` as it is broken into two steps instead of just one. Regardless, the outcome is the same.
 
 ### "Database"
 
