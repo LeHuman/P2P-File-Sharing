@@ -75,9 +75,15 @@ namespace Index {
 
 		/**
 		 * @brief Client can ping server for delay
-		 * @return delay to get response in milliseconds
+		 * @return delay to get response in microseconds
 		*/
-		milliseconds ping();
+		std::chrono::microseconds ping();
+
+		/**
+		 * @brief Check if client is connected
+		 * @return true if connected
+		*/
+		bool connected();
 
 		/**
 		 * @brief Register file to index server

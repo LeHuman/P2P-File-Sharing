@@ -17,7 +17,7 @@ bool indexRPCFunc(Index::Indexer *indexer, Exchanger::Exchanger *exchanger, std:
 			std::cout << item.str().data() << std::endl;
 		}
 	} else if (func == Index::k_Ping) {
-		Log.i(ID, "Server reponse time: %dms", indexer->ping());
+		Log.i(ID, "Server reponse time: %fms", indexer->ping() / 1000.0);
 	} else if (func == Index::k_Request) { // Should call async to start downloading from sources / a source
 		Index::entryHash_t hash = tokens[1];
 		Log.i(ID, "Searching server peer index for: %s", hash.data());

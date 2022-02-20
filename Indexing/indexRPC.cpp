@@ -1,4 +1,5 @@
 #include <thread>
+#include <chrono>
 
 #include "rpc/server.h"
 
@@ -72,9 +73,9 @@ namespace Index {
 			while (true) {
 				try {
 					clt = new rpc::client(serverConn.ip, serverConn.port);
-					//clt->set_timeout(6000);
+					clt->set_timeout(6000);
 					clt->call(k_Ping);
-					Log.i("Indexer", "Server pinged! %dms", ping());
+					Log.i("Indexer", "Server pinged! %fms", ping() / 1000.0);
 					break;
 				} catch (const rpc::system_error &e) {
 					Log.f("Indexer", "Unable to create client: %s", e.what());
@@ -86,15 +87,21 @@ namespace Index {
 		}
 	}
 
-	milliseconds Indexer::ping() {
+	std::chrono::microseconds Indexer::ping() {
 		if (!isServer) {
 			auto start = std::chrono::high_resolution_clock::now();
 			auto resp = clt->call(k_Ping);
 			auto stop = std::chrono::high_resolution_clock::now();
-			auto duration = duration_cast<milliseconds>(stop - start);
+			auto duration = duration_cast<std::chrono::microseconds>(stop - start);
 			return duration;
 		}
-		return milliseconds(-1);
+		return std::chrono::microseconds(-1);
+	}
+
+	bool Indexer::connected() {
+		if (isServer)
+			return true;
+		return clt->get_connection_state() == rpc::client::connection_state::connected;
 	}
 
 	bool Indexer::registry(string entryName, entryHash_t hash) {
