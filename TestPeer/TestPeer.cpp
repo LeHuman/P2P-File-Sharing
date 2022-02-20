@@ -159,7 +159,7 @@ int main(int argc, char *argv[]) {
 
 	int c = 500;
 
-	Log.enable(false);
+	//Log.enable(false);
 
 	try {
 		while (indexer.connected() && c > 0) {
