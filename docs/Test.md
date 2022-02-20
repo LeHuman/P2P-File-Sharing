@@ -45,11 +45,11 @@ I do not believe this occurred, at least in the tests shown here. Regardless, I 
 These tests were automated using a python script, which reads the csv file generated py the test programs and compiling it into averages.
 I then took these averages and graphed them in Excel.
 
+\newpage
+
 ## Local Stress Test
 
 This is the main test which was run locally on the same machine, for both peer and server.
-
-\newpage
 
 ### Single User ping
 
@@ -92,11 +92,17 @@ I did not get to compiling on a Mac.
 
 This client ran on the same machine as the server.
 
+Avg Response Time = `96.38461538µs`
+
 \includegraphics[width=\textwidth]{localCC.png}
+
+\newpage
 
 #### AMD CPU - Windows Subsystem for Linux - Debian Bookworm - x86_64
 
 This client ran on the same machine as the server, but has additional overhead from having a compatibility layer.
+
+Avg Response Time = `204.8315789µs`
 
 \includegraphics[width=\textwidth]{WSLCC.png}
 
@@ -104,17 +110,25 @@ This client ran on the same machine as the server, but has additional overhead f
 
 This client ran on the same network as the server.
 
+Avg Response Time = `406.9759615µs`
+
 \includegraphics[width=\textwidth]{DebianCC.png}
+
+\newpage
 
 #### Raspberry Pi 4 - Debian Bullseye - ARM
 
 This client ran on the same network as the server.
+
+Avg Response Time = `503.93µs`
 
 \includegraphics[width=\textwidth]{RPICC.png}
 
 #### Android w/ Termux - Debian Bullseye - ARM
 
 This client ran on the same network as the server but through WIFI.
+
+Avg Response Time = `4629.076923µs`
 
 Took, by far, the longest with a maximum of 45ms.
 
