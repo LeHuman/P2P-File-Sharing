@@ -46,6 +46,10 @@ namespace Exchanger {
 	static const string sID = "Exchanger Server";
 	static const string cID = "Exchanger Client";
 
+	void timeout(tcp::iostream &stream) {
+		stream.expires_after(std::chrono::seconds(5));
+	}
+
 	void Exchanger::fileSender(uint32_t id, tcp::iostream stream) {
 		State state = State::S_Accept;
 		uint16_t hashLen = 0;
@@ -53,7 +57,7 @@ namespace Exchanger {
 		uint64_t totalWritten = 0;
 		double lastWritten = 0;
 		char status = 0;
-		std::streamsize written = 0;
+		std::streamsize written = 1;
 
 		asio::error_code error;
 		Index::entryHash_t hash;
@@ -65,6 +69,7 @@ namespace Exchanger {
 
 		try {
 			while (state != State::Disconnect) {
+				timeout(stream);
 				switch (state) {
 					case State::S_Accept:
 						Log.d(sID, "Sending ID");
@@ -79,11 +84,13 @@ namespace Exchanger {
 							state = State::Disconnect;
 							break;
 						}
+						timeout(stream);
 						stream.read(sBuf, hashLen);
 						hash = Index::entryHash_t(sBuf); // Get Hash from Client
 
 						Log.d(sID, "Hash get: %s", hash.data());
 
+						timeout(stream);
 						if ((it = localFiles.find(hash)) != localFiles.end()) { // File exists, open file and send size of file
 							file = it->second;
 							fileOut = std::ifstream(file.path, std::ios_base::in | std::ios_base::binary); // TODO: ensure file has not changed, confirm localFiles matches details
@@ -92,7 +99,8 @@ namespace Exchanger {
 							stream.write((char *)&fileSize, sizeof(uint64_t));
 							state = State::Streaming;
 						} else { // File does not exist, disconnect
-							stream << 0;
+							fileSize = 0;
+							stream.write((char *)&fileSize, sizeof(uint64_t));
 							Log.w(sID, "File does not exist: %s", hash.data());
 							state = State::Disconnect;
 						}
@@ -100,9 +108,11 @@ namespace Exchanger {
 					case State::Streaming:
 						Log.d(sID, "Waiting to stream");
 						stream.read(&status, 1);
+						timeout(stream);
 						if (status) { // Get confirmation from client
 							Log.d(sID, "Streaming");
-							while (!fileOut.eof() && !fileOut.bad() && !stream.error()) {
+							while (written > 0 && !fileOut.eof() && !fileOut.bad() && !stream.error()) {
+								timeout(stream);
 								fileOut.read(sBuf, block_size);
 								written = fileOut.gcount();
 								totalWritten += written;
@@ -151,16 +161,18 @@ namespace Exchanger {
 
 		try {
 			while (state != State::Disconnect) {
+				timeout(stream);
 				switch (state) {
 					case State::C_ConfirmID:
 						Log.d(cID, "Receiving server ID");
 						stream.read((char *)&id, sizeof(uint32_t));
 						if (id != eid) {
-							Log.w(cID, "Mismatched ID: %d", id);
+							Log.w(cID, "Mismatched ID: %d != %d", eid, id);
 							status = false;
 							state = State::Disconnect;
 						} else {
 							Log.d(cID, "ID match, sending hash: %s", hash.data());
+							stream.expires_after(std::chrono::seconds(5));
 							stream.write((char *)&hashLen, sizeof(uint16_t));
 							stream.write(hash.data(), hash.size());
 							state = State::C_AllocSpace;
@@ -169,6 +181,7 @@ namespace Exchanger {
 					case State::C_AllocSpace:
 						Log.d(cID, "Receiving file size");
 						stream.read((char *)&fileSize, sizeof(uint64_t));
+						timeout(stream);
 						if (fileSize == 0) { // TODO: Check file size for mistmatch and also allocate file / check for space
 							status = false;
 							Log.w(cID, "Invalid filesize: %d", fileSize);
@@ -184,6 +197,7 @@ namespace Exchanger {
 					case State::Streaming:
 						Log.d(cID, "Streaming");
 						while (received > 0 && !fileIn.bad() && !stream.error()) {
+							timeout(stream);
 							stream.read(sBuf, block_size);
 							received = stream.gcount();
 							fileIn.write(sBuf, received);
@@ -225,6 +239,7 @@ namespace Exchanger {
 
 		while (true) {
 			tcp::iostream stream;
+			stream.expires_after(std::chrono::seconds(5));
 			acceptor.accept(stream.socket());
 
 			auto endpnt = stream.socket().remote_endpoint();
@@ -237,6 +252,7 @@ namespace Exchanger {
 		for (Index::Peer::searchEntry &item : results.peers) {
 			Log.d(ID, "Connecting to peer: %d", item.id);
 			tcp::iostream stream(item.connInfo.ip, std::to_string(item.connInfo.port));
+			stream.expires_after(std::chrono::seconds(60));
 			if (fileReceiver(stream, item.id, hash, downloadPath))
 				return;
 		}
@@ -296,22 +312,23 @@ namespace Exchanger {
 		thread(&Exchanger::_startSocket, this, id, listeningPort).detach();
 	}
 
-	void Exchanger::download(Index::PeerResults results, entryHash_t hash) {
+	bool Exchanger::download(Index::PeerResults results, entryHash_t hash) {
 		std::filesystem::path filePath = downloadPath;
 		filePath /= results.fileName;
 		try {
 			auto localFile = localFiles.find(hash);
 			if (localFile != localFiles.end()) { // TODO: Check if file with same name exists
 				Log.e(ID, "File already exists locally, not downloading: %s", localFile->second.name.data());
-				return;
+				return false;
 				//} else {
-					//Log.w(ID, "File with same name exists locally, overwritting: %s", localFile->second.name.data());
+					//Log.w(ID, "File with same name exists locally, overwriting: %s", localFile->second.name.data());
 			}
 		} catch (const Util::File::not_regular_error &) {
 		}
 		std::lock_guard<std::mutex> lock(mutex);
 		queries.emplace(results, hash, filePath.string()); // TODO: Allow per request download path
 		cond.notify_all();
+		return true;
 	}
 
 	void Exchanger::addLocalFile(Util::File file) {

@@ -69,14 +69,16 @@ namespace Exchanger {
 		 * @brief change the directory to download/upload to/from
 		 * @param downloadPath the directory to download/upload to/from
 		*/
+
 		void setDownloadPath(string downloadPath);
 
 		/**
 		 * @brief download a file from a peer
 		 * @param results The results from an index server
 		 * @param hash The hash of the file to download
+		 * @Return download queued
 		*/
-		void download(Index::PeerResults results, entryHash_t hash);
+		bool download(Index::PeerResults results, entryHash_t hash);
 
 		void addLocalFile(Util::File file);
 
