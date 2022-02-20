@@ -31,8 +31,8 @@ void Peer::listener(Util::File file, Util::File::Status status) { // TODO: not t
 
 	switch (status) {
 		case Util::File::Status::created:
-			registerFile(*indexer, file.path.filename().string(), file.hash);
 			exchanger->addLocalFile(file);
+			registerFile(*indexer, file.path.filename().string(), file.hash);
 			break;
 		case Util::File::Status::erased:
 			exchanger->removeLocalFile(file);
