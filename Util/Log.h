@@ -31,9 +31,12 @@ namespace Util {
 		*/
 		struct Log_t {
 		private:
+			bool enabled = true;
 			std::mutex print_l;
 			template <typename ... Args>
 			void __log(string ID, string level, char const *const format, Args ... args) {
+				if (!enabled)
+					return;
 				size_t sz = (size_t)snprintf(NULL, 0, format, args ...) + 1;
 				char *buf = new char[sz];
 				snprintf(buf, sz, format, args ...);
@@ -68,6 +71,13 @@ namespace Util {
 			void f(string ID, char const *const format, Args ... args) {
 				__log(ID, L_FATAL, format, args ...);
 			}
+
+			/**
+			 * @brief Enable logging
+			 * @param enable true to enable
+			*/
+			void enable(bool enable);
+
 			/*void test() {
 				operator()("Test", "Oui");
 				d("Test", "This");
