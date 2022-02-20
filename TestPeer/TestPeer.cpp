@@ -151,7 +151,7 @@ int main(int argc, char *argv[]) {
 	_exchanger = &exchanger;
 
 	std::filesystem::create_directories("csvs");
-	std::ofstream csv("csvs\\mstime" + std::to_string(id) + ".csv", std::ios_base::binary);
+	std::ofstream csv((std::filesystem::path("csvs") / "mstime").string() + std::to_string(id) + ".csv", std::ios_base::binary);
 
 	indexer.start();
 
