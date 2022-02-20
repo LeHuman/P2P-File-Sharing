@@ -59,8 +59,11 @@ def readCSVs():
     c = 0
 
     for csv in glob.glob(os.getcwd() + "\csvs\*"):
-        avg += getAvg(csv)
-        c += 1
+        try:
+            avg += getAvg(csv)
+            c += 1
+        except IndexError: # File is empty?
+            pass
 
     return avg / c
 
@@ -73,7 +76,7 @@ def main():
 
     clean()
 
-    for i in list(range(3, 100)) + list(range(100, 500, 100)):
+    for i in list(range(58, 100)) + list(range(100, 500, 100)):
         runTest(i)
         peers.append(i)
         avgs.append(readCSVs())
