@@ -20,6 +20,9 @@
 #include <rpc/this_session.h>
 
 namespace Index {
+
+	static const int64_t timeout = 8000;
+
 	Indexer::~Indexer() {
 		if (srv != nullptr) {
 			srv->stop();
@@ -29,7 +32,8 @@ namespace Index {
 			delete clt;
 	}
 
-	Indexer::Indexer(uint16_t sPort) {
+	Indexer::Indexer(uint16_t sPort, int32_t totalSupers) {
+		_TTL = totalSupers;
 		srv = new rpc::server(sPort);
 		database = new Database();
 		serverConn.ip = "127.0.0.1"; // DNC
@@ -60,7 +64,7 @@ namespace Index {
 
 			// Propagated requests
 
-			srv->bind(k_Search, [&](uid_t uid, logic_t TTL, string query) -> EntryResults {
+			srv->bind(k_Search, [&](uid_t uid, int32_t TTL, string query) -> EntryResults {
 				uidMux.lock();
 				if (UIDs.contains(uid)) {
 					uidMux.unlock();
@@ -72,6 +76,10 @@ namespace Index {
 
 				auto R = database->search(query);
 
+				if (TTL == -1) { // -1 means an actual peer is making the request, initialize to total super peers
+					TTL = _TTL;
+				}
+
 				TTL--;
 
 				if (TTL > 0) {
@@ -87,9 +95,10 @@ namespace Index {
 							break;
 						}
 					}
+
 					try {
 						auto clt = rpc::client(neighbor.ip, neighbor.port);
-						clt.set_timeout(6000);
+						clt.set_timeout(timeout);
 						auto _R = clt.call(k_Search, uid, TTL, query).as<EntryResults>();
 						R.insert(R.end(), _R.begin(), _R.end());
 					} catch (const std::runtime_error &) { // TODO: catch custom error
@@ -100,7 +109,7 @@ namespace Index {
 				return R;
 					  });
 
-			srv->bind(k_List, [&](uid_t uid, logic_t TTL) -> EntryResults {
+			srv->bind(k_List, [&](uid_t uid, int32_t TTL) -> EntryResults {
 				uidMux.lock();
 				if (UIDs.contains(uid)) {
 					uidMux.unlock();
@@ -112,6 +121,10 @@ namespace Index {
 
 				auto R = database->list();
 
+				if (TTL == -1) { // -1 means an actual peer is making the request, initialize to total super peers
+					TTL = _TTL;
+				}
+
 				TTL--;
 
 				if (TTL > 0) {
@@ -127,9 +140,10 @@ namespace Index {
 							break;
 						}
 					}
+
 					try {
 						auto clt = rpc::client(neighbor.ip, neighbor.port);
-						clt.set_timeout(6000);
+						clt.set_timeout(timeout);
 						auto _R = clt.call(k_List, uid, TTL).as<EntryResults>();
 						R.insert(R.end(), _R.begin(), _R.end());
 					} catch (const std::runtime_error &) { // TODO: catch custom error
@@ -140,7 +154,7 @@ namespace Index {
 				return R;
 					  });
 
-			srv->bind(k_Request, [&](uid_t uid, logic_t TTL, entryHash_t hash) -> PeerResults {
+			srv->bind(k_Request, [&](uid_t uid, int32_t TTL, entryHash_t hash) -> PeerResults {
 				uidMux.lock();
 				if (UIDs.contains(uid)) {
 					uidMux.unlock();
@@ -152,6 +166,10 @@ namespace Index {
 
 				auto R = database->request(hash);
 
+				if (TTL == -1) { // -1 means an actual peer is making the request, initialize to total super peers
+					TTL = _TTL;
+				}
+
 				TTL--;
 
 				if (TTL > 0) {
@@ -167,9 +185,10 @@ namespace Index {
 							break;
 						}
 					}
+
 					try {
 						auto clt = rpc::client(neighbor.ip, neighbor.port);
-						clt.set_timeout(6000);
+						clt.set_timeout(timeout);
 						auto _R = clt.call(k_Request, uid, TTL, hash).as<PeerResults>();
 						R += _R;
 					} catch (const std::runtime_error &) { // TODO: catch custom error
@@ -205,7 +224,7 @@ namespace Index {
 				try {
 					Log.d("Indexer", "Connecting to index server at: %s:%d", serverConn.ip, serverConn.port);
 					clt = new rpc::client(serverConn.ip, serverConn.port);
-					clt->set_timeout(6000);
+					clt->set_timeout(timeout);
 					clt->call(k_Ping);
 					Log.i("Indexer", "Server pinged! %fms", ping() / 1000.0);
 					break;
@@ -228,6 +247,10 @@ namespace Index {
 			return duration;
 		}
 		return std::chrono::microseconds(-1);
+	}
+
+	void Indexer::addNeighboor(conn_t neighbor) {
+		neighbors.push_back(neighbor);
 	}
 
 	bool Indexer::connected() {
@@ -263,22 +286,19 @@ namespace Index {
 	EntryResults Indexer::search(string query) {
 		if (isServer)
 			return database->search(query);
-		logic_t TTL = 10; // TODO: get number of super peers from config file
-		return clt->call(k_Search, nextUID(), TTL, query).as<EntryResults>();
+		return clt->call(k_Search, nextUID(), -1, query).as<EntryResults>();
 	}
 
 	EntryResults Indexer::list() {
 		if (isServer)
 			return database->list();
-		logic_t TTL = 10; // TODO: get number of super peers from config file
-		return clt->call(k_List, nextUID(), TTL).as<EntryResults>();
+		return clt->call(k_List, nextUID(), -1).as<EntryResults>();
 	}
 
 	PeerResults Indexer::request(entryHash_t hash) {
 		if (isServer)
 			return database->request(hash);
-		logic_t TTL = 10; // TODO: get number of super peers from config file
-		return clt->call(k_Request, nextUID(), TTL, hash).as<PeerResults>();
+		return clt->call(k_Request, nextUID(), -1, hash).as<PeerResults>();
 	}
 
 	Database *Indexer::getDatabase() {

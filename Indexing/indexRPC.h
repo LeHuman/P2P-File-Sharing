@@ -53,6 +53,7 @@ namespace Index {
 		conn_t serverConn;
 		conn_t peerConn;
 		bool isServer = false;
+		int32_t _TTL;
 		int id = -1;
 		std::mutex uidMux;
 		logic_t LC = 0; // Logic clock
@@ -74,9 +75,11 @@ namespace Index {
 
 		/**
 		 * @brief Create an Indexer Server
+		 *
 		 * @param sPort port this indexing server should listen on
-		*/
-		Indexer(uint16_t sPort);
+		 * @param totalSupers Number of total super peers on the static network, including this one
+		 */
+		Indexer(uint16_t sPort, int32_t totalSupers);
 
 		/**
 		 * @brief Create an Indexer Client
@@ -86,6 +89,11 @@ namespace Index {
 		 * @param sPort The indexing server Port this client should use
 		*/
 		Indexer(int id, uint16_t cPort, string sIP, uint16_t sPort);
+
+		/**
+		 * @brief Add a neighbor's connection info
+		*/
+		void addNeighboor(conn_t neighbor);
 
 		/**
 		 * @brief Start the server/client connection
