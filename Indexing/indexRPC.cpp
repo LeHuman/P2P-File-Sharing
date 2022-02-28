@@ -97,6 +97,7 @@ namespace Index {
 					}
 
 					try {
+						Log.d("Indexer", "Propagating query %s %ull %u", k_Search, uid, TTL);
 						auto clt = rpc::client(neighbor.ip, neighbor.port);
 						clt.set_timeout(timeout);
 						auto _R = clt.call(k_Search, uid, TTL, query).as<EntryResults>();
@@ -142,6 +143,7 @@ namespace Index {
 					}
 
 					try {
+						Log.d("Indexer", "Propagating query %s %ull %u", k_List, uid, TTL);
 						auto clt = rpc::client(neighbor.ip, neighbor.port);
 						clt.set_timeout(timeout);
 						auto _R = clt.call(k_List, uid, TTL).as<EntryResults>();
@@ -187,6 +189,7 @@ namespace Index {
 					}
 
 					try {
+						Log.d("Indexer", "Propagating query %s %ull %u", k_Request, uid, TTL);
 						auto clt = rpc::client(neighbor.ip, neighbor.port);
 						clt.set_timeout(timeout);
 						auto _R = clt.call(k_Request, uid, TTL, hash).as<PeerResults>();
