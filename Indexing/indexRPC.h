@@ -4,15 +4,17 @@
  * @brief Module that deals with communication between peer and server using RPC
  * @version 0.1
  * @date 2022-02-20
- * 
+ *
  * @copyright Copyright (c) 2022
- * 
+ *
  */
 
 #pragma once
 
 #include <vector>
 #include <string>
+#include <mutex>
+#include <unordered_set>
 
 #include "rpc/server.h"
 #include "rpc/client.h"
@@ -23,11 +25,14 @@
 namespace Index {
 	using std::vector;
 	using std::string;
+	using std::unordered_set;
 	using std::chrono::milliseconds;
 	using Index::conn_t;
 	using Index::EntryResults;
 	using Index::PeerResults;
 	using Index::entryHash_t;
+	using logic_t = uint64_t;
+	using uid_t = uint64_t;
 
 	const string k_Register = "register";
 	const string k_Deregister = "deregister";
@@ -43,15 +48,24 @@ namespace Index {
 		rpc::client *clt = nullptr;
 		rpc::server *srv = nullptr;
 		Index::Database *database = nullptr;
-		Index::conn_t serverConn;
-		Index::conn_t peerConn;
+		unordered_set<uid_t> UIDs;
+		vector<conn_t> neighbors; // TODO: populate with config file
+		conn_t serverConn;
+		conn_t peerConn;
 		bool isServer = false;
 		int id = -1;
+		std::mutex uidMux;
+		logic_t LC = 0; // Logic clock
 
 		/**
 		 * @brief Binds the server functions to be used by clients
 		*/
 		void bindFunctions();
+
+		/**
+		 * @brief Hashes both id and LC to return the next UID. Used internally for query propagation
+		*/
+		uid_t nextUID();
 
 	public:
 		~Indexer();
@@ -60,9 +74,9 @@ namespace Index {
 
 		/**
 		 * @brief Create an Indexer Server
-		 * @param port port this indexing server should listen on
+		 * @param sPort port this indexing server should listen on
 		*/
-		Indexer(uint16_t port);
+		Indexer(uint16_t sPort);
 
 		/**
 		 * @brief Create an Indexer Client

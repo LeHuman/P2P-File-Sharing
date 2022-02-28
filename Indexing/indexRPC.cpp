@@ -4,15 +4,16 @@
  * @brief Source code for the indexRPC module
  * @version 0.1
  * @date 2022-02-20
- * 
+ *
  * @copyright Copyright (c) 2022
- * 
+ *
  */
 
 #include <thread>
 #include <chrono>
 
 #include "rpc/server.h"
+#include "rpc/this_handler.h"
 
 #include "indexRPC.h"
 #include <rpc/rpc_error.h>
@@ -28,11 +29,11 @@ namespace Index {
 			delete clt;
 	}
 
-	Indexer::Indexer(uint16_t port) {
-		srv = new rpc::server(port);
+	Indexer::Indexer(uint16_t sPort) {
+		srv = new rpc::server(sPort);
 		database = new Database();
 		serverConn.ip = "127.0.0.1"; // DNC
-		serverConn.port = port;
+		serverConn.port = sPort;
 		isServer = true;
 		bindFunctions();
 	}
@@ -55,10 +56,129 @@ namespace Index {
 			srv->bind(k_Deregister, [&](int id, conn_t connection, entryHash_t hash) -> bool {
 				connection.ip = rpc::this_session().remoteAddr;
 				return database->deregister(id, connection, hash); });
-			srv->bind(k_Search, [&](string query) -> EntryResults {return database->search(query); });
-			srv->bind(k_List, [&]() -> EntryResults {return database->list(); });
-			srv->bind(k_Request, [&](entryHash_t hash) -> PeerResults {return database->request(hash); });
-			srv->bind(k_Ping, [&]() {return true;});
+			srv->bind(k_Ping, [&]() {return true; });
+
+			// Propagated requests
+
+			srv->bind(k_Search, [&](uid_t uid, logic_t TTL, string query) -> EntryResults {
+				uidMux.lock();
+				if (UIDs.contains(uid)) {
+					uidMux.unlock();
+					rpc::this_handler().respond_error("UID already in progress");
+					// Returns
+				}
+				UIDs.insert(uid);
+				uidMux.unlock();
+
+				auto R = database->search(query);
+
+				TTL--;
+
+				if (TTL > 0) {
+					// Get connection info of this neighbor/peer to ensure we don't propagate backwards
+					string _addr = rpc::this_session().remoteAddr;
+					unsigned short _port = rpc::this_session().remotePort;
+
+					conn_t neighbor;
+
+					for (auto n : neighbors) {
+						if (n.ip != _addr || n.port != _port) { // Either differing attribute means we aren't propagating to the same super peer
+							neighbor = n;
+							break;
+						}
+					}
+					try {
+						auto clt = rpc::client(neighbor.ip, neighbor.port);
+						clt.set_timeout(6000);
+						auto _R = clt.call(k_Search, uid, TTL, query).as<EntryResults>();
+						R.insert(R.end(), _R.begin(), _R.end());
+					} catch (const std::runtime_error &) { // TODO: catch custom error
+					}
+				}
+
+				UIDs.erase(uid); // Potential to run query again? clear at a later time?
+				return R;
+					  });
+
+			srv->bind(k_List, [&](uid_t uid, logic_t TTL) -> EntryResults {
+				uidMux.lock();
+				if (UIDs.contains(uid)) {
+					uidMux.unlock();
+					rpc::this_handler().respond_error("UID already in progress");
+					// Returns
+				}
+				UIDs.insert(uid);
+				uidMux.unlock();
+
+				auto R = database->list();
+
+				TTL--;
+
+				if (TTL > 0) {
+					// Get connection info of this neighbor/peer to ensure we don't propagate backwards
+					string _addr = rpc::this_session().remoteAddr;
+					unsigned short _port = rpc::this_session().remotePort;
+
+					conn_t neighbor;
+
+					for (auto n : neighbors) {
+						if (n.ip != _addr || n.port != _port) { // Either differing attribute means we aren't propagating to the same super peer
+							neighbor = n;
+							break;
+						}
+					}
+					try {
+						auto clt = rpc::client(neighbor.ip, neighbor.port);
+						clt.set_timeout(6000);
+						auto _R = clt.call(k_List, uid, TTL).as<EntryResults>();
+						R.insert(R.end(), _R.begin(), _R.end());
+					} catch (const std::runtime_error &) { // TODO: catch custom error
+					}
+				}
+
+				UIDs.erase(uid); // Potential to run query again? clear at a later time?
+				return R;
+					  });
+
+			srv->bind(k_Request, [&](uid_t uid, logic_t TTL, entryHash_t hash) -> PeerResults {
+				uidMux.lock();
+				if (UIDs.contains(uid)) {
+					uidMux.unlock();
+					rpc::this_handler().respond_error("UID already in progress");
+					// Returns
+				}
+				UIDs.insert(uid);
+				uidMux.unlock();
+
+				auto R = database->request(hash);
+
+				TTL--;
+
+				if (TTL > 0) {
+					// Get connection info of this neighbor/peer to ensure we don't propagate backwards
+					string _addr = rpc::this_session().remoteAddr;
+					unsigned short _port = rpc::this_session().remotePort;
+
+					conn_t neighbor;
+
+					for (auto n : neighbors) {
+						if (n.ip != _addr || n.port != _port) { // Either differing attribute means we aren't propagating to the same super peer
+							neighbor = n;
+							break;
+						}
+					}
+					try {
+						auto clt = rpc::client(neighbor.ip, neighbor.port);
+						clt.set_timeout(6000);
+						auto _R = clt.call(k_Request, uid, TTL, hash).as<PeerResults>();
+						R += _R;
+					} catch (const std::runtime_error &) { // TODO: catch custom error
+					}
+				}
+
+				UIDs.erase(uid); // Potential to run query again? clear at a later time?
+				return R;
+					  });
 		}
 	}
 
@@ -128,22 +248,37 @@ namespace Index {
 		return clt->call(k_Deregister, id, peerConn, hash).as<bool>();
 	}
 
+	uid_t Indexer::nextUID() { // https://stackoverflow.com/questions/19195183/how-to-properly-hash-the-custom-struct
+		std::hash<logic_t> lh;
+		std::hash<int> ih;
+
+		LC++; // Increment clock
+
+		uid_t next = lh(LC);
+		next ^= ih(id) + 0x9e3779b9 + (next << 6) + (next >> 2);
+
+		return next;
+	}
+
 	EntryResults Indexer::search(string query) {
 		if (isServer)
 			return database->search(query);
-		return clt->call(k_Search, query).as<EntryResults>();
+		logic_t TTL = 10; // TODO: get number of super peers from config file
+		return clt->call(k_Search, nextUID(), TTL, query).as<EntryResults>();
 	}
 
 	EntryResults Indexer::list() {
 		if (isServer)
 			return database->list();
-		return clt->call(k_List).as<EntryResults>();
+		logic_t TTL = 10; // TODO: get number of super peers from config file
+		return clt->call(k_List, nextUID(), TTL).as<EntryResults>();
 	}
 
 	PeerResults Indexer::request(entryHash_t hash) {
 		if (isServer)
 			return database->request(hash);
-		return clt->call(k_Request, hash).as<PeerResults>();
+		logic_t TTL = 10; // TODO: get number of super peers from config file
+		return clt->call(k_Request, nextUID(), TTL, hash).as<PeerResults>();
 	}
 
 	Database *Indexer::getDatabase() {
