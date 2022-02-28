@@ -1,12 +1,12 @@
 ﻿/**
- * @file Server.cpp
+ * @file SuperPeer.cpp
  * @author IR
- * @brief The server executable
+ * @brief The super peer executable
  * @version 0.1
- * @date 2022-02-20
- * 
+ * @date 2022-02-27
+ *
  * @copyright Copyright (c) 2022
- * 
+ *
  */
 
 #include <tclap/CmdLine.h>
@@ -14,7 +14,7 @@
 
 int main(int argc, char *argv[]) {
 	try {
-        // Get command line arguments using library
+		// Get command line arguments using library
 		TCLAP::CmdLine cmd("Create a P2P Server", ' ');
 		TCLAP::ValueArg<uint16_t> portArg("p", "port", "The port this server should listen to", false, 55555, "int", cmd);
 		cmd.parse(argc, argv);
