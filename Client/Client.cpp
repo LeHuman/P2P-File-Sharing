@@ -2,8 +2,8 @@
  * @file Client.cpp
  * @author IR
  * @brief The client executable
- * @version 0.1
- * @date 2022-02-20
+ * @version 0.2
+ * @date 2022-02-27
  *
  * @copyright Copyright (c) 2022
  *
