@@ -53,7 +53,7 @@ namespace Index {
 		conn_t serverConn;
 		conn_t peerConn;
 		bool isServer = false;
-		int32_t _TTL;
+		int32_t _TTL = 0;
 		int id = -1;
 		std::mutex uidMux;
 		logic_t LC = 0; // Logic clock
