@@ -4,9 +4,9 @@
  * @brief Module that deals with indexing files
  * @version 0.1
  * @date 2022-02-20
- * 
+ *
  * @copyright Copyright (c) 2022
- * 
+ *
  */
 
 #pragma once
@@ -164,6 +164,11 @@ namespace Index {
 		std::vector<Peer::searchEntry> peers;
 
 		MSGPACK_DEFINE_ARRAY(fileName, peers);
+
+		PeerResults &operator+=(const PeerResults &rhs) {
+			peers.insert(peers.end(), rhs.peers.begin(), rhs.peers.end());
+			return *this;
+		}
 	};
 	using PeerResults = struct PeerResults;
 
