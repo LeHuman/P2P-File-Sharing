@@ -35,8 +35,6 @@ add_subdirectory("rpclib")
 
 add_subdirectory("Peer")
 
-add_subdirectory("Server")
-
 add_subdirectory("Client")
 
 add_subdirectory("Console")
@@ -47,3 +45,5 @@ add_library(tclap INTERFACE)
 target_include_directories(tclap INTERFACE "tclap/include")
 
 add_subdirectory("TestPeer")
+
+add_subdirectory("json")

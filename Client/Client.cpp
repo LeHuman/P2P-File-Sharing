@@ -8,29 +8,37 @@
  * @copyright Copyright (c) 2022
  *
  */
-
 #include <tclap/CmdLine.h>
+#include <nlohmann/json.hpp>
 
+#include "IndexRPC.h"
 #include "Peer.h"
+#include "Config.h"
 
 int main(int argc, char *argv[]) {
 	try {
 		// Get command line arguments using library
-		TCLAP::CmdLine cmd("Create a P2P Client", ' ');
+		TCLAP::CmdLine cmd("Create a P2P Client using static config", ' ');
 
-		TCLAP::ValueArg<uint32_t> idArg("i", "identity", "Unique ID identifying this client", true, 0, "int", cmd);
-		TCLAP::ValueArg<std::string> sipArg("s", "serverIP", "The indexing server IP address this client should connect to", false, "localhost", "ip address", cmd);
-		TCLAP::ValueArg<uint16_t> spArg("e", "serverPort", "The indexing server Port this client should use", false, 55555, "int", cmd);
-		TCLAP::ValueArg<uint16_t> cpArg("c", "clientPort", "The client Port other peers should connect to", false, 0, "int", cmd);
-		TCLAP::ValueArg<std::string> fldrArg("f", "downloadFolder", "The local folder files should be uploaded and downloaded to", true, "", "directory", cmd);
+		TCLAP::ValueArg<uint32_t> idArg("i", "identity", "Unique ID identifying this client", false, 0, "int", cmd);
+		TCLAP::ValueArg<std::string> confArg("c", "configFile", "The config file to use", false, "../../../../test_config.json", "filePath", cmd);
+		TCLAP::ValueArg<std::string> fldrArg("f", "downloadFolder", "The local folder files should be uploaded and downloaded to", false, "../../testFolder0", "directory", cmd);
 
 		cmd.parse(argc, argv);
 
-		uint16_t cPort = cpArg.getValue();
-		if (cPort == 0)
-			cPort = 44000 + idArg.getValue();
+		Config::config_t config = Config::getConfig(idArg.getValue(), confArg.getValue());
 
-		Peer c(idArg.getValue(), cPort, sipArg.getValue(), spArg.getValue(), fldrArg.getValue()); // Create a Peer object
+		Index::Indexer *s;
+		// Create a Peer object
+		Peer c(idArg.getValue(), config.port + 1000, config.server.ip, config.server.port, fldrArg.getValue()); //1000 is added to port to differentiate client to server when on super peers
+
+		if (config.isSuper) { // Create server if this is a super peer
+			s = new Index::Indexer(config.server.port, config.totalSupers);
+			for (Index::conn_t conn : config.neighbors)
+				s->addNeighboor(conn);
+			s->start();
+		}
+
 		c.start(); // Start the Peer object
 		c.console(); // Start the Peer's interactive prompt
 	} catch (TCLAP::ArgException &e) {
