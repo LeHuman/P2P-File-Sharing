@@ -225,7 +225,7 @@ namespace Index {
 			Log.i("Indexer", "Running Client");
 			while (true) {
 				try {
-					Log.d("Indexer", "Connecting to index server at: %s:%d", serverConn.ip, serverConn.port);
+					Log.d("Indexer", "Connecting to index server at: %s:%d", serverConn.ip.data(), serverConn.port);
 					clt = new rpc::client(serverConn.ip, serverConn.port);
 					clt->set_timeout(timeout);
 					clt->call(k_Ping);
