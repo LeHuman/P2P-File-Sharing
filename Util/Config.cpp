@@ -1,7 +1,24 @@
+/**
+ * @file Config.cpp
+ * @author IR
+ * @brief Configuration module source
+ * @version 0.1
+ * @date 2022-03-03
+ * 
+ * @copyright Copyright (c) 2022
+ * 
+ */
+
 #include "Config.h"
 
 namespace Config {
 
+    /**
+     * @brief Load the Config file given it's path
+     * 
+     * @param configPath Path to the file
+     * @return json The JSON object
+     */
 	json loadConfig(string configPath) {
 		json config;
 		std::ifstream f(configPath);
@@ -10,6 +27,12 @@ namespace Config {
 		return config;
 	}
 
+    /**
+     * @brief helper function to get a conn_t struct from JSON
+     * 
+     * @param connection JSON entry from the "connections" array
+     * @return conn_t connection info
+     */
 	conn_t getConn(json::value_type &connection) {
 		return conn_t(connection["ip"], connection["port"]);
 	}
