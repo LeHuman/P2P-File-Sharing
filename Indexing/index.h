@@ -43,7 +43,7 @@ namespace Index {
 		}
 
 		string str() {
-			return ip + std::to_string(port);
+			return ip + ':' + std::to_string(port);
 		}
 
 		MSGPACK_DEFINE_ARRAY(ip, port);
