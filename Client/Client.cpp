@@ -8,12 +8,18 @@
  * @copyright Copyright (c) 2022
  *
  */
+
+#include <string>
+#include <filesystem>
+
 #include <tclap/CmdLine.h>
 #include <nlohmann/json.hpp>
 
 #include "IndexRPC.h"
 #include "Peer.h"
 #include "Config.h"
+
+using std::string;
 
 int main(int argc, char *argv[]) {
 	try {
@@ -22,15 +28,28 @@ int main(int argc, char *argv[]) {
 
 		TCLAP::ValueArg<uint32_t> idArg("i", "identity", "Unique ID identifying this client", false, 0, "int", cmd);
 		TCLAP::ValueArg<std::string> confArg("c", "configFile", "The config file to use", false, "../../../../test_config.json", "filePath", cmd);
-		TCLAP::ValueArg<std::string> fldrArg("f", "downloadFolder", "The local folder files should be uploaded and downloaded to", false, "../../testFolder0", "directory", cmd);
+		TCLAP::ValueArg<std::string> fldrArg("f", "downloadFolder", "The local folder files should be uploaded and downloaded to", false, "", "directory", cmd);
 
 		cmd.parse(argc, argv);
 
 		Config::config_t config = Config::getConfig(idArg.getValue(), confArg.getValue());
 
+		string folder = fldrArg.getValue();
+
+		if (folder == "") {
+			folder = "watchFolder" + std::to_string(idArg.getValue());
+		}
+
+		if (!std::filesystem::exists(folder)) {
+			std::filesystem::create_directories(folder);
+			Log.w("Client", "Watch Folder auto created");
+		}
+
+		// Alloc ptr for super peer
 		Index::Indexer *s;
+
 		// Create a Peer object
-		Peer c(idArg.getValue(), config.port + 1000, config.server.ip, config.server.port, fldrArg.getValue()); //1000 is added to port to differentiate client to server when on super peers
+		Peer c(idArg.getValue(), config.port + 1000, config.server.ip, config.server.port, folder); //1000 is added to port to differentiate client to server when on super peers
 
 		if (config.isSuper) { // Create server if this is a super peer
 			s = new Index::Indexer(config.server.port, config.totalSupers);
