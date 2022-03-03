@@ -13,3 +13,6 @@
 [submodule "tclap"]
 	path = tclap
 	url = https://git.code.sf.net/p/tclap/code
+[submodule "json"]
+	path = json
+	url = https://github.com/nlohmann/json
