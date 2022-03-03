@@ -100,8 +100,25 @@ namespace Index {
 						Log.d("Indexer", "Propagating query %s %llu %u", k_Search.data(), uid, TTL);
 						auto clt = rpc::client(neighbor.ip, neighbor.port);
 						clt.set_timeout(timeout);
-						auto _R = clt.call(k_Search, uid, TTL, query).as<EntryResults>();
-						R.insert(R.end(), _R.begin(), _R.end());
+						EntryResults _R = clt.call(k_Search, uid, TTL, query).as<EntryResults>();
+						EntryResults _Ra;
+
+						for (Entry::searchEntry &rs : _R) { // TODO: O(n^2)
+							bool found = false;
+							for (Entry::searchEntry &ls : R) {
+								if (ls == rs) {
+									ls += rs;
+									found = true;
+									break; // There should at most be one exact duplicate per entry
+								}
+							}
+							if (!found) {
+								_Ra.push_back(rs);
+							}
+						}
+
+						R.insert(R.end(), _Ra.begin(), _Ra.end());
+
 					} catch (const std::runtime_error &e) { // TODO: catch custom error
 						Log.w("Indexer", "Neighbor error: %s", e.what());
 					}
@@ -147,8 +164,24 @@ namespace Index {
 						Log.d("Indexer", "Propagating query %s %llu %u", k_List.data(), uid, TTL);
 						auto clt = rpc::client(neighbor.ip, neighbor.port);
 						clt.set_timeout(timeout);
-						auto _R = clt.call(k_List, uid, TTL).as<EntryResults>();
-						R.insert(R.end(), _R.begin(), _R.end());
+						EntryResults _R = clt.call(k_List, uid, TTL).as<EntryResults>();
+						EntryResults _Ra;
+
+						for (Entry::searchEntry &rs : _R) { // TODO: O(n^2)
+							bool found = false;
+							for (Entry::searchEntry &ls : R) {
+								if (ls == rs) {
+									ls += rs;
+									found = true;
+									break; // There should at most be one exact duplicate per entry
+								}
+							}
+							if (!found) {
+								_Ra.push_back(rs);
+							}
+						}
+
+						R.insert(R.end(), _Ra.begin(), _Ra.end());
 					} catch (const std::runtime_error &e) { // TODO: catch custom error
 						Log.w("Indexer", "Neighbor error: %s", e.what());
 					}

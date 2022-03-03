@@ -107,6 +107,22 @@ namespace Index {
 
 			string firstIndexedString();
 			string str();
+
+			bool operator==(const searchEntry &rhs) const {
+				return (this->hash == rhs.hash && this->name == rhs.name);
+			}
+
+			searchEntry &operator+=(const searchEntry &rhs) {
+				//if (this->operator==(rhs)) {
+				peers += rhs.peers;
+				if (rhs.firstIndexed < firstIndexed && rhs.firstIndexed > 0) {
+					firstIndexed = rhs.firstIndexed;
+				}
+				/*} else {
+					Log.e("searchEntry", "Attempted to concatenate two different search entries: %s:%s %s:%s", name, hash, rhs.name, rhs.hash);
+				}*/
+				return *this;
+			}
 		};
 
 		/**
@@ -166,6 +182,9 @@ namespace Index {
 		MSGPACK_DEFINE_ARRAY(fileName, peers);
 
 		PeerResults &operator+=(const PeerResults &rhs) {
+			if (fileName == "" && rhs.fileName != "") {
+				fileName = rhs.fileName;
+			}
 			peers.insert(peers.end(), rhs.peers.begin(), rhs.peers.end());
 			return *this;
 		}
