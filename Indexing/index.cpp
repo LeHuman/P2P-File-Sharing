@@ -266,7 +266,7 @@ namespace Index {
 
 		if (got == entries.end()) {
 			mutex.unlock();
-			results.fileName = "NULL";
+			results.fileName = "";
 			Log.w("Request", "No entries found with hash: %s", hash.data());
 		} else {
 			results.fileName = got->second->name;
