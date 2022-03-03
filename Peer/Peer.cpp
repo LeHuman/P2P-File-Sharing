@@ -4,9 +4,9 @@
  * @brief Source code for the peer module
  * @version 0.1
  * @date 2022-02-20
- * 
+ *
  * @copyright Copyright (c) 2022
- * 
+ *
  */
 
 #include "Parsers.h"
@@ -60,7 +60,7 @@ void Peer::listener(Util::File file, Util::File::Status status) { // TODO: not t
 }
 
 Peer::Peer(uint32_t id, uint16_t listeningPort, std::string indexingIP, uint16_t indexingPort, std::string downloadPath) :id { id }, listeningPort { listeningPort }, indexingIP { indexingIP }, indexingPort { indexingPort }, downloadPath { downloadPath }{
-	_console.setPrompt("Client");
+	_console.setPrompt("Client-" + std::to_string(id));
 	_console.addParser(indexRPCFunc);
 }
 
