@@ -97,12 +97,13 @@ namespace Index {
 					}
 
 					try {
-						Log.d("Indexer", "Propagating query %s %ull %u", k_Search, uid, TTL);
+						Log.d("Indexer", "Propagating query %s %llu %u", k_Search.data(), uid, TTL);
 						auto clt = rpc::client(neighbor.ip, neighbor.port);
 						clt.set_timeout(timeout);
 						auto _R = clt.call(k_Search, uid, TTL, query).as<EntryResults>();
 						R.insert(R.end(), _R.begin(), _R.end());
-					} catch (const std::runtime_error &) { // TODO: catch custom error
+					} catch (const std::runtime_error &e) { // TODO: catch custom error
+						Log.w("Indexer", "Neighbor error: %s", e.what());
 					}
 				}
 
@@ -143,12 +144,13 @@ namespace Index {
 					}
 
 					try {
-						Log.d("Indexer", "Propagating query %s %ull %u", k_List, uid, TTL);
+						Log.d("Indexer", "Propagating query %s %llu %u", k_List.data(), uid, TTL);
 						auto clt = rpc::client(neighbor.ip, neighbor.port);
 						clt.set_timeout(timeout);
 						auto _R = clt.call(k_List, uid, TTL).as<EntryResults>();
 						R.insert(R.end(), _R.begin(), _R.end());
-					} catch (const std::runtime_error &) { // TODO: catch custom error
+					} catch (const std::runtime_error &e) { // TODO: catch custom error
+						Log.w("Indexer", "Neighbor error: %s", e.what());
 					}
 				}
 
@@ -189,12 +191,13 @@ namespace Index {
 					}
 
 					try {
-						Log.d("Indexer", "Propagating query %s %ull %u", k_Request, uid, TTL);
+						Log.d("Indexer", "Propagating query %s %llu %u", k_Request.data(), uid, TTL);
 						auto clt = rpc::client(neighbor.ip, neighbor.port);
 						clt.set_timeout(timeout);
 						auto _R = clt.call(k_Request, uid, TTL, hash).as<PeerResults>();
 						R += _R;
-					} catch (const std::runtime_error &) { // TODO: catch custom error
+					} catch (const std::runtime_error &e) { // TODO: catch custom error
+						Log.w("Indexer", "Neighbor error: %s", e.what());
 					}
 				}
 
