@@ -104,8 +104,8 @@ void tieredThreadTest(string ip, uint16_t port) {
 }
 
 int main() {
-	Index::Indexer s(55555);
-	s.start();
+	//Index::Indexer s(55555);
+	//s.start();
 
 	//./Client -i 1211 -c 44563 -s "192.168.1.200" -e 55555 -f "../../../../testFolder2"
 	//./Client -i 156 -c 42910 -s "192.168.1.200" -e 55555 -f "../../../../testFolder"
