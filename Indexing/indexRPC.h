@@ -53,6 +53,7 @@ namespace Index {
 		conn_t serverConn;
 		conn_t peerConn;
 		bool isServer = false;
+		bool all2all = false;
 		int32_t _TTL = 0;
 		int id = -1;
 		std::mutex uidMux;
@@ -78,8 +79,9 @@ namespace Index {
 		 *
 		 * @param sPort port this indexing server should listen on
 		 * @param totalSupers Number of total super peers on the static network, including this one
+		 * @param all2all Enable all2all mode, where queries are propagated to every neighbor at once
 		 */
-		Indexer(uint16_t sPort, int32_t totalSupers);
+		Indexer(uint16_t sPort, int32_t totalSupers, bool all2all = false);
 
 		/**
 		 * @brief Create an Indexer Client

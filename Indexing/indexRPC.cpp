@@ -32,7 +32,7 @@ namespace Index {
 			delete clt;
 	}
 
-	Indexer::Indexer(uint16_t sPort, int32_t totalSupers) {
+	Indexer::Indexer(uint16_t sPort, int32_t totalSupers, bool all2all) : all2all { all2all } {
 		_TTL = totalSupers;
 		srv = new rpc::server(sPort);
 		database = new Database();
@@ -49,6 +49,74 @@ namespace Index {
 		serverConn.ip = sIP;
 		serverConn.port = sPort;
 		isServer = false;
+	}
+
+	void searchEntries(uid_t &uid, int32_t &TTL, string &query, conn_t &neighbor, EntryResults &R) {
+		try {
+			Log.d("Indexer", "Propagating query %s %llu %u", k_Search.data(), uid, TTL);
+			auto clt = rpc::client(neighbor.ip, neighbor.port);
+			clt.set_timeout(timeout);
+			EntryResults _R = clt.call(k_Search, uid, TTL, query).as<EntryResults>();
+			EntryResults _Ra;
+
+			for (Entry::searchEntry &rs : _R) { // TODO: O(n^2)
+				bool found = false;
+				for (Entry::searchEntry &ls : R) {
+					if (ls == rs) {
+						ls += rs;
+						found = true;
+						break; // There should at most be one exact duplicate per entry
+					}
+				}
+				if (!found) {
+					_Ra.push_back(rs);
+				}
+			}
+
+			R.insert(R.end(), _Ra.begin(), _Ra.end());
+		} catch (const std::runtime_error &e) {
+			Log.w("Indexer", "Neighbor error: %s", e.what());
+		}
+	}
+
+	void listEntries(uid_t &uid, int32_t &TTL, conn_t &neighbor, EntryResults &R) {
+		try {
+			Log.d("Indexer", "Propagating query %s %llu %u", k_List.data(), uid, TTL);
+			auto clt = rpc::client(neighbor.ip, neighbor.port);
+			clt.set_timeout(timeout);
+			EntryResults _R = clt.call(k_List, uid, TTL).as<EntryResults>();
+			EntryResults _Ra;
+
+			for (Entry::searchEntry &rs : _R) { // TODO: O(n^2)
+				bool found = false;
+				for (Entry::searchEntry &ls : R) {
+					if (ls == rs) {
+						ls += rs;
+						found = true;
+						break; // There should at most be one exact duplicate per entry
+					}
+				}
+				if (!found) {
+					_Ra.push_back(rs);
+				}
+			}
+
+			R.insert(R.end(), _Ra.begin(), _Ra.end());
+		} catch (const std::runtime_error &e) { // TODO: catch custom error
+			Log.w("Indexer", "Neighbor error: %s", e.what());
+		}
+	}
+
+	void requestPeers(uid_t &uid, int32_t &TTL, string &hash, conn_t &neighbor, PeerResults &R) {
+		try {
+			Log.d("Indexer", "Propagating query %s %llu %u", k_Request.data(), uid, TTL);
+			auto clt = rpc::client(neighbor.ip, neighbor.port);
+			clt.set_timeout(timeout);
+			auto _R = clt.call(k_Request, uid, TTL, hash).as<PeerResults>();
+			R += _R;
+		} catch (const std::runtime_error &e) { // TODO: catch custom error
+			Log.w("Indexer", "Neighbor error: %s", e.what());
+		}
 	}
 
 	void Indexer::bindFunctions() {
@@ -77,7 +145,14 @@ namespace Index {
 				auto R = database->search(query);
 
 				if (TTL == -1) { // -1 means an actual peer is making the request, initialize to total super peers
-					TTL = _TTL;
+					if (all2all) {
+						TTL = 0; // propagated calls will not propagate any further
+						for (conn_t neighbor : neighbors) {
+							listEntries(uid, TTL, neighbor, R);
+						}
+					} else {
+						TTL = _TTL;
+					}
 				}
 
 				TTL--;
@@ -89,39 +164,14 @@ namespace Index {
 
 					conn_t neighbor;
 
-					for (auto n : neighbors) {
+					for (conn_t n : neighbors) {
 						if (n.ip != _addr || n.port != _port) { // Either differing attribute means we aren't propagating to the same super peer
 							neighbor = n;
 							break;
 						}
 					}
 
-					try {
-						Log.d("Indexer", "Propagating query %s %llu %u", k_Search.data(), uid, TTL);
-						auto clt = rpc::client(neighbor.ip, neighbor.port);
-						clt.set_timeout(timeout);
-						EntryResults _R = clt.call(k_Search, uid, TTL, query).as<EntryResults>();
-						EntryResults _Ra;
-
-						for (Entry::searchEntry &rs : _R) { // TODO: O(n^2)
-							bool found = false;
-							for (Entry::searchEntry &ls : R) {
-								if (ls == rs) {
-									ls += rs;
-									found = true;
-									break; // There should at most be one exact duplicate per entry
-								}
-							}
-							if (!found) {
-								_Ra.push_back(rs);
-							}
-						}
-
-						R.insert(R.end(), _Ra.begin(), _Ra.end());
-
-					} catch (const std::runtime_error &e) { // TODO: catch custom error
-						Log.w("Indexer", "Neighbor error: %s", e.what());
-					}
+					searchEntries(uid, TTL, query, neighbor, R);
 				}
 
 				UIDs.erase(uid); // Potential to run query again? clear at a later time?
@@ -141,7 +191,14 @@ namespace Index {
 				auto R = database->list();
 
 				if (TTL == -1) { // -1 means an actual peer is making the request, initialize to total super peers
-					TTL = _TTL;
+					if (all2all) {
+						TTL = 0; // propagated calls will not propagate any further
+						for (conn_t neighbor : neighbors) {
+							listEntries(uid, TTL, neighbor, R);
+						}
+					} else {
+						TTL = _TTL;
+					}
 				}
 
 				TTL--;
@@ -160,31 +217,7 @@ namespace Index {
 						}
 					}
 
-					try {
-						Log.d("Indexer", "Propagating query %s %llu %u", k_List.data(), uid, TTL);
-						auto clt = rpc::client(neighbor.ip, neighbor.port);
-						clt.set_timeout(timeout);
-						EntryResults _R = clt.call(k_List, uid, TTL).as<EntryResults>();
-						EntryResults _Ra;
-
-						for (Entry::searchEntry &rs : _R) { // TODO: O(n^2)
-							bool found = false;
-							for (Entry::searchEntry &ls : R) {
-								if (ls == rs) {
-									ls += rs;
-									found = true;
-									break; // There should at most be one exact duplicate per entry
-								}
-							}
-							if (!found) {
-								_Ra.push_back(rs);
-							}
-						}
-
-						R.insert(R.end(), _Ra.begin(), _Ra.end());
-					} catch (const std::runtime_error &e) { // TODO: catch custom error
-						Log.w("Indexer", "Neighbor error: %s", e.what());
-					}
+					listEntries(uid, TTL, neighbor, R);
 				}
 
 				UIDs.erase(uid); // Potential to run query again? clear at a later time?
@@ -204,7 +237,14 @@ namespace Index {
 				auto R = database->request(hash);
 
 				if (TTL == -1) { // -1 means an actual peer is making the request, initialize to total super peers
-					TTL = _TTL;
+					if (all2all) {
+						TTL = 0; // propagated calls will not propagate any further
+						for (conn_t neighbor : neighbors) {
+							requestPeers(uid, TTL, hash, neighbor, R);
+						}
+					} else {
+						TTL = _TTL;
+					}
 				}
 
 				TTL--;
@@ -223,15 +263,7 @@ namespace Index {
 						}
 					}
 
-					try {
-						Log.d("Indexer", "Propagating query %s %llu %u", k_Request.data(), uid, TTL);
-						auto clt = rpc::client(neighbor.ip, neighbor.port);
-						clt.set_timeout(timeout);
-						auto _R = clt.call(k_Request, uid, TTL, hash).as<PeerResults>();
-						R += _R;
-					} catch (const std::runtime_error &e) { // TODO: catch custom error
-						Log.w("Indexer", "Neighbor error: %s", e.what());
-					}
+					requestPeers(uid, TTL, hash, neighbor, R);
 				}
 
 				UIDs.erase(uid); // Potential to run query again? clear at a later time?

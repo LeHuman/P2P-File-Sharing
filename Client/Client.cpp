@@ -26,13 +26,14 @@ int main(int argc, char *argv[]) {
 		// Get command line arguments using library
 		TCLAP::CmdLine cmd("Create a P2P Client using static config", ' ');
 
-		TCLAP::ValueArg<uint32_t> idArg("i", "identity", "Unique ID identifying this client", false, 0, "int", cmd);
+		TCLAP::ValueArg<uint32_t> idArg("i", "identity", "Unique ID identifying this client", false, 9, "int", cmd);
 		TCLAP::ValueArg<std::string> confArg("c", "configFile", "The config file to use", false, "../../../../test_config.json", "filePath", cmd);
 		TCLAP::ValueArg<std::string> fldrArg("f", "downloadFolder", "The local folder files should be uploaded and downloaded to", false, "", "directory", cmd);
+		TCLAP::SwitchArg all2all("a", "all2all", "enable all2all mode", cmd);
 
 		cmd.parse(argc, argv);
 
-		Config::config_t config = Config::getConfig(idArg.getValue(), confArg.getValue());
+		Config::config_t config = Config::getConfig(idArg.getValue(), confArg.getValue(), all2all.getValue());
 
 		string folder = fldrArg.getValue();
 
@@ -52,9 +53,12 @@ int main(int argc, char *argv[]) {
 		Peer c(idArg.getValue(), config.port + 1000, config.server.ip, config.server.port, folder); //1000 is added to port to differentiate client to server when on super peers
 
 		if (config.isSuper) { // Create server if this is a super peer
-			s = new Index::Indexer(config.server.port, config.totalSupers);
-			for (Index::conn_t conn : config.neighbors)
-				s->addNeighboor(conn);
+			s = new Index::Indexer(config.server.port, config.totalSupers, config.all2all);
+			for (Index::conn_t conn : config.neighbors) {
+				if (conn != config.server) { // Ensure we don't reference ourselves
+					s->addNeighboor(conn);
+				}
+			}
 			s->start();
 		}
 
