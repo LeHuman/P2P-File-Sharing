@@ -2,11 +2,11 @@
  * @file TestPeer.cpp
  * @author IR
  * @brief Automated Peer, used only for testing
- * @version 0.1
- * @date 2022-02-20
- * 
+ * @version 0.2
+ * @date 2022-03-03
+ *
  * @copyright Copyright (c) 2022
- * 
+ *
  */
 
 #include <iostream>
@@ -20,6 +20,7 @@
 #include "Exchanger.h"
 #include "indexRPC.h"
 #include "TestStrings.h"
+#include <Config.h>
 
 using std::string;
 
@@ -129,14 +130,19 @@ Index::entryHash_t getRandomListing() {
 int main(int argc, char *argv[]) {
 	TCLAP::CmdLine cmd("Create a test P2P Client", ' ');
 
-	TCLAP::ValueArg<uint32_t> idArg("i", "identity", "Unique ID identifying this test client", false, rndID(rng), "int", cmd);
+	TCLAP::ValueArg<uint32_t> idArg("i", "identity", "Unique ID identifying this client", true, 0, "int", cmd);
+	TCLAP::ValueArg<std::string> confArg("c", "configFile", "The config file to use", false, "test_config.json", "filePath", cmd);
+	TCLAP::SwitchArg all2all("a", "all2all", "enable all2all mode", cmd);
+	TCLAP::SwitchArg enabled("e", "enabled", "Whether this client should actively make queries", cmd);
 	cmd.parse(argc, argv);
 
 	uint32_t id = idArg.getValue();
 
-	string serverIP = "192.168.1.231";
-	uint16_t serverPort = 55555;
-	uint16_t clientPort = 30000 + id;
+	Config::config_t config = Config::getConfig(idArg.getValue(), confArg.getValue(), all2all.getValue());
+
+	string serverIP = config.server.ip;
+	uint16_t serverPort = config.server.port;
+	uint16_t clientPort = config.port + 1000;
 	string folder = "watchFolder" + std::to_string(id);
 	std::filesystem::create_directories(folder);
 	std::filesystem::path fp(folder);
@@ -152,11 +158,23 @@ int main(int argc, char *argv[]) {
 	outputText(testStrs[rndStr(rng)], (fp / ("testFile" + std::to_string(rndID(rng)) + ".txt")).string());
 	outputText(testStrs[rndStr(rng)], (fp / ("testFile" + std::to_string(rndID(rng)) + ".txt")).string());
 
+	Index::Indexer *s;
+
 	Index::Indexer indexer(id, clientPort, serverIP, serverPort);
 	Exchanger::Exchanger exchanger(idArg.getValue(), clientPort, folder);
 
 	_indexer = &indexer;
 	_exchanger = &exchanger;
+
+	if (config.isSuper) { // Create server if this is a super peer
+		s = new Index::Indexer(config.server.port, config.totalSupers, config.all2all);
+		for (Index::conn_t conn : config.neighbors) {
+			if (conn != config.server) { // Ensure we don't reference ourselves
+				s->addNeighboor(conn);
+			}
+		}
+		s->start();
+	}
 
 	std::filesystem::create_directories("csvs");
 	std::ofstream csv((std::filesystem::path("csvs") / "mstime").string() + std::to_string(id) + ".csv", std::ios_base::binary);
@@ -165,36 +183,50 @@ int main(int argc, char *argv[]) {
 
 	Util::Folder folderWatcher(folder, [&](Util::File file, Util::File::Status status) {listener(file, status); });
 
-	int c = 500;
+	int c = 200;
 
 	//Log.enable(false);
 
-	try {
-		while (indexer.connected() && c > 0) {
-			std::cout << c << std::endl;
-			Index::entryHash_t h = getRandomListing();
-			if (h != "") {
-				c -= requestFile(h);
+	if (enabled) {
+		try {
+			while (indexer.connected() && c > 0) {
+				std::chrono::microseconds duration;
+
+				std::cout << c << std::endl;
+				Index::entryHash_t h = getRandomListing();
+				if (h != "") {
+					auto start = std::chrono::high_resolution_clock::now();
+					c -= requestFile(h);
+					auto stop = std::chrono::high_resolution_clock::now();
+					duration = duration_cast<std::chrono::microseconds>(stop - start);
+				}
+
+				auto dirIter = std::filesystem::directory_iterator(folder);
+				int fileCount = std::count_if(begin(dirIter), end(dirIter), [](auto &entry) { return entry.is_regular_file(); });
+
+				std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+				if (fileCount > 5 && rndDel(rng)) {
+					deleteRndFile(folder);
+				}
+
+				std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+				if (fileCount > 5 && rndDel(rng)) {
+					outputText(testStrs[rndStr(rng)], (fp / ("testFile" + std::to_string(rndID(rng)) + ".txt")).string());
+				}
+
+				std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+				//auto ping = indexer.ping().count();
+				//c--;
+				csv << duration << ',';
+				std::this_thread::sleep_for(std::chrono::milliseconds(50));
 			}
-
-			auto dirIter = std::filesystem::directory_iterator(folder);
-			int fileCount = std::count_if(begin(dirIter), end(dirIter), [](auto &entry) { return entry.is_regular_file(); });
-
-			if (fileCount > 5 && rndDel(rng)) {
-				c -= deleteRndFile(folder);
-			}
-
-			if (fileCount > 5 && rndDel(rng)) {
-				outputText(testStrs[rndStr(rng)], (fp / ("testFile" + std::to_string(rndID(rng)) + ".txt")).string());
-			}
-
-			auto ping = indexer.ping().count();
-			c--;
-			csv << ping << ',';
-			std::this_thread::sleep_for(std::chrono::milliseconds(200));
+		} catch (const std::exception &) {
 		}
-	} catch (const std::exception &) {
 	}
+
 	csv.flush();
 	std::cout << std::endl << "DONE" << std::endl;
 	csv.close();
@@ -202,7 +234,7 @@ int main(int argc, char *argv[]) {
 	std::ofstream d(std::to_string(id) + ".done");
 	d.close();
 
-	while (indexer.connected()){ 
+	while (!std::filesystem::exists("finish")) {
 		std::this_thread::sleep_for(std::chrono::seconds(1));
 	}
 
