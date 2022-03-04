@@ -227,7 +227,7 @@ int main(int argc, char *argv[]) {
 
 				//auto ping = indexer.ping().count();
 				//c--;
-				csv << duration << ',';
+				csv << duration.count() << ',';
 				std::this_thread::sleep_for(std::chrono::milliseconds(50));
 			}
 		} catch (const std::exception &e) {
