@@ -151,13 +151,7 @@ int main(int argc, char *argv[]) {
 	outputText(testStrs[rndStr(rng)], (fp / ("testFile" + std::to_string(rndID(rng)) + ".txt")).string());
 	outputText(testStrs[rndStr(rng)], (fp / ("testFile" + std::to_string(rndID(rng)) + ".txt")).string());
 	outputText(testStrs[rndStr(rng)], (fp / ("testFile" + std::to_string(rndID(rng)) + ".txt")).string());
-	outputText(testStrs[rndStr(rng)], (fp / ("testFile" + std::to_string(rndID(rng)) + ".txt")).string());
-	outputText(testStrs[rndStr(rng)], (fp / ("testFile" + std::to_string(rndID(rng)) + ".txt")).string());
-	outputText(testStrs[rndStr(rng)], (fp / ("testFile" + std::to_string(rndID(rng)) + ".txt")).string());
-	outputText(testStrs[rndStr(rng)], (fp / ("testFile" + std::to_string(rndID(rng)) + ".txt")).string());
-	outputText(testStrs[rndStr(rng)], (fp / ("testFile" + std::to_string(rndID(rng)) + ".txt")).string());
-	outputText(testStrs[rndStr(rng)], (fp / ("testFile" + std::to_string(rndID(rng)) + ".txt")).string());
-
+	
 	Index::Indexer *s;
 
 	Index::Indexer indexer(id, clientPort, serverIP, serverPort);
@@ -187,18 +181,33 @@ int main(int argc, char *argv[]) {
 
 	//Log.enable(false);
 
-	if (enabled) {
+	while (!std::filesystem::exists("start")) {
+		std::this_thread::sleep_for(std::chrono::seconds(1));
+	}
+
+	if (enabled.getValue()) {
+		Log.i("Test", "Enabled");
+
+		//void *block = malloc(999999999);
+
+		//while (true) {
+		//}
+
 		try {
 			while (indexer.connected() && c > 0) {
 				std::chrono::microseconds duration;
 
 				std::cout << c << std::endl;
 				Index::entryHash_t h = getRandomListing();
+
+				//std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
 				if (h != "") {
 					auto start = std::chrono::high_resolution_clock::now();
-					c -= requestFile(h);
+					requestFile(h);
 					auto stop = std::chrono::high_resolution_clock::now();
 					duration = duration_cast<std::chrono::microseconds>(stop - start);
+					c--;
 				}
 
 				auto dirIter = std::filesystem::directory_iterator(folder);
@@ -206,33 +215,32 @@ int main(int argc, char *argv[]) {
 
 				std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
-				if (fileCount > 5 && rndDel(rng)) {
+				if (fileCount > 0 && rndDel(rng)) {
 					deleteRndFile(folder);
 				}
 
 				std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
-				if (fileCount > 5 && rndDel(rng)) {
+				if (fileCount < 1 && rndDel(rng)) {
 					outputText(testStrs[rndStr(rng)], (fp / ("testFile" + std::to_string(rndID(rng)) + ".txt")).string());
 				}
-
-				std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
 				//auto ping = indexer.ping().count();
 				//c--;
 				csv << duration << ',';
 				std::this_thread::sleep_for(std::chrono::milliseconds(50));
 			}
-		} catch (const std::exception &) {
+		} catch (const std::exception &e) {
+			Log.e("Test Error", "%s", e.what());
 		}
 	}
 
 	csv.flush();
-	std::cout << std::endl << "DONE" << std::endl;
 	csv.close();
-
 	std::ofstream d(std::to_string(id) + ".done");
 	d.close();
+
+	std::cout << std::endl << "DONE" << std::endl;
 
 	while (!std::filesystem::exists("finish")) {
 		std::this_thread::sleep_for(std::chrono::seconds(1));
