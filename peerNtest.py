@@ -38,6 +38,9 @@ def readCSVs():
         except IndexError:  # File is empty?
             pass
 
+    if c == 0:
+        return -1
+
     return avg / c
 
 
@@ -45,14 +48,18 @@ def runTest(maxID, active, all2all):
     procs = []
 
     for i in range(maxID - active):
-        procs.append(subprocess.Popen(["TestPeer.exe", f"-i {i}", "-a" if all2all else ""]))
+        procs.append(subprocess.Popen(["TestPeer.exe", f"-i {i}", "-c test_config.json", "-a" if all2all else ""]))
 
     for i in range(maxID - active, maxID + 1):
-        procs.append(subprocess.Popen(["TestPeer.exe", f"-i {i}", "-e", "-a" if all2all else ""]))
+        procs.append(subprocess.Popen(["TestPeer.exe", f"-i {i}", "-e", "-c test_config.json", "-a" if all2all else ""]))
 
-    done = 0
+    sleep(5)
+
+    open("start", "w").close()
 
     sleep(20)
+
+    done = 0
 
     while done != len(procs):
         done = 0
@@ -76,19 +83,18 @@ def main():
 
     clean()
 
-    for i in range(0, 30):
-        runTest(i, 29 - i, False)  # 29 1-29
-        peers.append(i)
+    for i in range(27, -1, -1):
+        runTest(28, 27 - i, False)
+        peers.append(28 - i)
         avgs.append(readCSVs())
         clean()
         pd.DataFrame({"Active Peers": peers, "Avg micros": avgs}).to_excel("Average Runtimes Linear.xlsx")
-
-    for i in range(0, 30):
-        runTest(i, 29 - i, True)  # 29 1-29
-        peers.append(i)
+    
+    for i in range(27, -1, -1):
+        runTest(28, 27 - i, True)
+        peers.append(28 - i)
         avgs.append(readCSVs())
         clean()
         pd.DataFrame({"Active Peers": peers, "Avg micros": avgs}).to_excel("Average Runtimes All2All.xlsx")
-
 
 main()
