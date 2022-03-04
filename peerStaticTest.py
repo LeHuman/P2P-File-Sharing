@@ -23,6 +23,6 @@ def runTest(runs, interject, all2all):
 
 def main():
     """Main Function"""
-    runTest(int(sys.argv[1]), int(sys.argv[2]), len(sys.argv) > 3) # 28 n
+    runTest(int(sys.argv[1]), int(sys.argv[2]), len(sys.argv) > 3) # 29 n
 
 main()
