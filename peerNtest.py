@@ -11,7 +11,7 @@ import pandas as pd
 
 def clean():
     for clean_up in glob.glob(os.getcwd() + "\*"):
-        if not clean_up.endswith("Server.exe") and not clean_up.endswith("TestPeer.exe"):
+        if not clean_up.endswith("test_config.json") and not clean_up.endswith("TestPeer.exe"):
             print(clean_up)
             try:
                 os.remove(clean_up)
@@ -19,34 +19,7 @@ def clean():
                 shutil.rmtree(clean_up, ignore_errors=True)
 
 
-def runTest(runs):
-    procs = []
-
-    for i in range(int(runs)):
-        procs.append(subprocess.Popen(["TestPeer.exe", f"-i {i}"]))
-
-    srv = subprocess.Popen("Server.exe")
-
-    c = 0
-
-    sleep(20)
-
-    while c != len(procs):
-        c = 0
-        sleep(1)
-        for root, dirs, files in os.walk("."):
-            for file in files:
-                c += os.path.splitext(file)[1] == ".done"
-            break
-
-    srv.kill()
-
-    for proc in procs:
-        proc.wait()
-
-
 def getAvg(csv):
-    column_sums = None
     with open(csv) as file:
         nums = file.readlines()[0].strip(",").split(",")
         nums = [num for num in map(int, nums)]
@@ -62,10 +35,37 @@ def readCSVs():
         try:
             avg += getAvg(csv)
             c += 1
-        except IndexError: # File is empty?
+        except IndexError:  # File is empty?
             pass
 
     return avg / c
+
+
+def runTest(maxID, active, all2all):
+    procs = []
+
+    for i in range(maxID - active):
+        procs.append(subprocess.Popen(["TestPeer.exe", f"-i {i}", "-a" if all2all else ""]))
+
+    for i in range(maxID - active, maxID + 1):
+        procs.append(subprocess.Popen(["TestPeer.exe", f"-i {i}", "-e", "-a" if all2all else ""]))
+
+    done = 0
+
+    sleep(20)
+
+    while done != len(procs):
+        done = 0
+        sleep(1)
+        for _, _, files in os.walk("."):
+            for file in files:
+                done += os.path.splitext(file)[1] == ".done"
+            break
+
+    open("finish", "w").close()
+
+    for proc in procs:
+        proc.wait()
 
 
 def main():
@@ -76,11 +76,19 @@ def main():
 
     clean()
 
-    for i in list(range(58, 100)) + list(range(100, 500, 100)):
-        runTest(i)
+    for i in range(0, 30):
+        runTest(i, 29 - i, False)  # 29 1-29
         peers.append(i)
         avgs.append(readCSVs())
         clean()
-        pd.DataFrame({"Peers" : peers, "Avg micros" : avgs}).to_excel("Average Runtimes.xlsx")
+        pd.DataFrame({"Active Peers": peers, "Avg micros": avgs}).to_excel("Average Runtimes Linear.xlsx")
+
+    for i in range(0, 30):
+        runTest(i, 29 - i, True)  # 29 1-29
+        peers.append(i)
+        avgs.append(readCSVs())
+        clean()
+        pd.DataFrame({"Active Peers": peers, "Avg micros": avgs}).to_excel("Average Runtimes All2All.xlsx")
+
 
 main()
