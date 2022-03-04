@@ -21,7 +21,7 @@
 
 namespace Index {
 
-	static const int64_t timeout = 8000;
+	static const int64_t timeout = 10000;
 
 	Indexer::~Indexer() {
 		if (srv != nullptr) {
@@ -51,12 +51,13 @@ namespace Index {
 		isServer = false;
 	}
 
-	void searchEntries(uid_t &uid, int32_t &TTL, string &query, conn_t &neighbor, EntryResults &R) {
+	void searchEntries(uid_t &uid, int32_t &TTL, string &query, conn_t &neighbor, EntryResults &R, unsigned short _port) {
 		try {
 			Log.d("Indexer", "Propagating query %s %llu %u", k_Search.data(), uid, TTL);
 			auto clt = rpc::client(neighbor.ip, neighbor.port);
 			clt.set_timeout(timeout);
-			EntryResults _R = clt.call(k_Search, uid, TTL, query).as<EntryResults>();
+			//Log.d("Indexer", "Calling %llu", uid);
+			EntryResults _R = clt.call(k_Search, uid, TTL, query, _port).as<EntryResults>();
 			EntryResults _Ra;
 
 			for (Entry::searchEntry &rs : _R) { // TODO: O(n^2)
@@ -74,17 +75,20 @@ namespace Index {
 			}
 
 			R.insert(R.end(), _Ra.begin(), _Ra.end());
+			//R.insert(R.end(), _R.begin(), _R.end());
+			//Log.d("Indexer", "Calling Finished %llu", uid);
 		} catch (const std::runtime_error &e) {
-			Log.w("Indexer", "Neighbor error: %s", e.what());
+			Log.w("Indexer", "Neighbor error: %s:%u %s", neighbor.ip.data(), neighbor.port, e.what());
 		}
 	}
 
-	void listEntries(uid_t &uid, int32_t &TTL, conn_t &neighbor, EntryResults &R) {
+	void listEntries(uid_t &uid, int32_t &TTL, conn_t &neighbor, EntryResults &R, unsigned short _port) {
 		try {
 			Log.d("Indexer", "Propagating query %s %llu %u", k_List.data(), uid, TTL);
 			auto clt = rpc::client(neighbor.ip, neighbor.port);
 			clt.set_timeout(timeout);
-			EntryResults _R = clt.call(k_List, uid, TTL).as<EntryResults>();
+			//Log.d("Indexer", "Calling %llu", uid);
+			EntryResults _R = clt.call(k_List, uid, TTL, _port).as<EntryResults>();
 			EntryResults _Ra;
 
 			for (Entry::searchEntry &rs : _R) { // TODO: O(n^2)
@@ -102,17 +106,21 @@ namespace Index {
 			}
 
 			R.insert(R.end(), _Ra.begin(), _Ra.end());
+			//R.insert(R.end(), _R.begin(), _R.end());
+			//Log.d("Indexer", "Calling Finished %llu", uid);
 		} catch (const std::runtime_error &e) { // TODO: catch custom error
 			Log.w("Indexer", "Neighbor error: %s", e.what());
 		}
 	}
 
-	void requestPeers(uid_t &uid, int32_t &TTL, string &hash, conn_t &neighbor, PeerResults &R) {
+	void requestPeers(uid_t &uid, int32_t &TTL, string &hash, conn_t &neighbor, PeerResults &R, unsigned short _port) {
 		try {
 			Log.d("Indexer", "Propagating query %s %llu %u", k_Request.data(), uid, TTL);
 			auto clt = rpc::client(neighbor.ip, neighbor.port);
 			clt.set_timeout(timeout);
-			auto _R = clt.call(k_Request, uid, TTL, hash).as<PeerResults>();
+			//Log.d("Indexer", "Calling %llu", uid);
+			auto _R = clt.call(k_Request, uid, TTL, hash, _port).as<PeerResults>();
+			//Log.d("Indexer", "Calling Finished %llu", uid);
 			R += _R;
 		} catch (const std::runtime_error &e) { // TODO: catch custom error
 			Log.w("Indexer", "Neighbor error: %s", e.what());
@@ -132,10 +140,11 @@ namespace Index {
 
 			// Propagated requests
 
-			srv->bind(k_Search, [&](uid_t uid, int32_t TTL, string query) -> EntryResults {
+			srv->bind(k_Search, [&](uid_t uid, int32_t TTL, string query, unsigned short _port) -> EntryResults {
 				uidMux.lock();
 				if (UIDs.contains(uid)) {
 					uidMux.unlock();
+					Log.e("Indexer", "UID already in progress %llu", uid);
 					rpc::this_handler().respond_error("UID already in progress");
 					// Returns
 				}
@@ -148,7 +157,7 @@ namespace Index {
 					if (all2all) {
 						TTL = 0; // propagated calls will not propagate any further
 						for (conn_t neighbor : neighbors) {
-							listEntries(uid, TTL, neighbor, R);
+							listEntries(uid, TTL, neighbor, R, serverConn.port);
 						}
 					} else {
 						TTL = _TTL;
@@ -160,7 +169,6 @@ namespace Index {
 				if (TTL > 0) {
 					// Get connection info of this neighbor/peer to ensure we don't propagate backwards
 					string _addr = rpc::this_session().remoteAddr;
-					unsigned short _port = rpc::this_session().remotePort;
 
 					conn_t neighbor;
 
@@ -171,17 +179,18 @@ namespace Index {
 						}
 					}
 
-					searchEntries(uid, TTL, query, neighbor, R);
+					searchEntries(uid, TTL, query, neighbor, R, serverConn.port);
 				}
 
 				UIDs.erase(uid); // Potential to run query again? clear at a later time?
 				return R;
 					  });
 
-			srv->bind(k_List, [&](uid_t uid, int32_t TTL) -> EntryResults {
+			srv->bind(k_List, [&](uid_t uid, int32_t TTL, unsigned short _port) -> EntryResults {
 				uidMux.lock();
 				if (UIDs.contains(uid)) {
 					uidMux.unlock();
+					Log.e("Indexer", "UID already in progress %llu", uid);
 					rpc::this_handler().respond_error("UID already in progress");
 					// Returns
 				}
@@ -194,7 +203,7 @@ namespace Index {
 					if (all2all) {
 						TTL = 0; // propagated calls will not propagate any further
 						for (conn_t neighbor : neighbors) {
-							listEntries(uid, TTL, neighbor, R);
+							listEntries(uid, TTL, neighbor, R, serverConn.port);
 						}
 					} else {
 						TTL = _TTL;
@@ -206,7 +215,6 @@ namespace Index {
 				if (TTL > 0) {
 					// Get connection info of this neighbor/peer to ensure we don't propagate backwards
 					string _addr = rpc::this_session().remoteAddr;
-					unsigned short _port = rpc::this_session().remotePort;
 
 					conn_t neighbor;
 
@@ -217,17 +225,18 @@ namespace Index {
 						}
 					}
 
-					listEntries(uid, TTL, neighbor, R);
+					listEntries(uid, TTL, neighbor, R, serverConn.port);
 				}
 
 				UIDs.erase(uid); // Potential to run query again? clear at a later time?
 				return R;
 					  });
 
-			srv->bind(k_Request, [&](uid_t uid, int32_t TTL, entryHash_t hash) -> PeerResults {
+			srv->bind(k_Request, [&](uid_t uid, int32_t TTL, entryHash_t hash, unsigned short _port) -> PeerResults {
 				uidMux.lock();
 				if (UIDs.contains(uid)) {
 					uidMux.unlock();
+					Log.e("Indexer", "UID already in progress %llu", uid);
 					rpc::this_handler().respond_error("UID already in progress");
 					// Returns
 				}
@@ -240,7 +249,7 @@ namespace Index {
 					if (all2all) {
 						TTL = 0; // propagated calls will not propagate any further
 						for (conn_t neighbor : neighbors) {
-							requestPeers(uid, TTL, hash, neighbor, R);
+							requestPeers(uid, TTL, hash, neighbor, R, serverConn.port);
 						}
 					} else {
 						TTL = _TTL;
@@ -252,7 +261,6 @@ namespace Index {
 				if (TTL > 0) {
 					// Get connection info of this neighbor/peer to ensure we don't propagate backwards
 					string _addr = rpc::this_session().remoteAddr;
-					unsigned short _port = rpc::this_session().remotePort;
 
 					conn_t neighbor;
 
@@ -263,7 +271,7 @@ namespace Index {
 						}
 					}
 
-					requestPeers(uid, TTL, hash, neighbor, R);
+					requestPeers(uid, TTL, hash, neighbor, R, serverConn.port);
 				}
 
 				UIDs.erase(uid); // Potential to run query again? clear at a later time?
@@ -288,7 +296,7 @@ namespace Index {
 	void Indexer::start() {
 		if (isServer) {
 			Log.i("Indexer", "Running Server");
-			srv->async_run(std::thread::hardware_concurrency());
+			srv->async_run(std::thread::hardware_concurrency()*2);
 		} else {
 			Log.i("Indexer", "Running Client");
 			while (true) {
@@ -357,19 +365,19 @@ namespace Index {
 	EntryResults Indexer::search(string query) {
 		if (isServer)
 			return database->search(query);
-		return clt->call(k_Search, nextUID(), -1, query).as<EntryResults>();
+		return clt->call(k_Search, nextUID(), -1, query, 0).as<EntryResults>();
 	}
 
 	EntryResults Indexer::list() {
 		if (isServer)
 			return database->list();
-		return clt->call(k_List, nextUID(), -1).as<EntryResults>();
+		return clt->call(k_List, nextUID(), -1, 0).as<EntryResults>();
 	}
 
 	PeerResults Indexer::request(entryHash_t hash) {
 		if (isServer)
 			return database->request(hash);
-		return clt->call(k_Request, nextUID(), -1, hash).as<PeerResults>();
+		return clt->call(k_Request, nextUID(), -1, hash, 0).as<PeerResults>();
 	}
 
 	Database *Indexer::getDatabase() {
