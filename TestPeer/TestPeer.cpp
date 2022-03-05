@@ -86,10 +86,13 @@ void outputText(string msg, string path) {
 	}
 }
 
-bool requestFile(Index::entryHash_t hash) {
+std::chrono::microseconds requestFile(Index::entryHash_t hash) {
 	Log.i(ID, "Searching server peer index for: %s", hash.data());
+	auto start = std::chrono::high_resolution_clock::now();
 	Index::PeerResults results = _indexer->request(hash);
-	return _exchanger->download(results, hash);
+	auto stop = std::chrono::high_resolution_clock::now();
+	_exchanger->download(results, hash);
+	return duration_cast<std::chrono::microseconds>(stop - start);
 }
 
 bool deleteRndFile(string dir) {
@@ -204,10 +207,7 @@ int main(int argc, char *argv[]) {
 				std::this_thread::sleep_for(std::chrono::milliseconds(rndWait(rng)));
 
 				if (h != "") {
-					auto start = std::chrono::high_resolution_clock::now();
-					requestFile(h);
-					auto stop = std::chrono::high_resolution_clock::now();
-					duration = duration_cast<std::chrono::microseconds>(stop - start);
+					duration = requestFile(h);
 					c--;
 				}
 
