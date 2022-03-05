@@ -21,7 +21,7 @@
 
 namespace Index {
 
-	static const int64_t timeout = 10000;
+	static const int64_t timeout = 8000;
 
 	Indexer::~Indexer() {
 		if (srv != nullptr) {
@@ -56,7 +56,6 @@ namespace Index {
 			Log.d("Indexer", "Propagating query %s %llu %u", k_Search.data(), uid, TTL);
 			auto clt = rpc::client(neighbor.ip, neighbor.port);
 			clt.set_timeout(timeout);
-			//Log.d("Indexer", "Calling %llu", uid);
 			EntryResults _R = clt.call(k_Search, uid, TTL, query, _port).as<EntryResults>();
 			EntryResults _Ra;
 
@@ -75,9 +74,7 @@ namespace Index {
 			}
 
 			R.insert(R.end(), _Ra.begin(), _Ra.end());
-			//R.insert(R.end(), _R.begin(), _R.end());
-			//Log.d("Indexer", "Calling Finished %llu", uid);
-		} catch (const std::runtime_error &e) {
+		} catch (const std::exception &e) {
 			Log.w("Indexer", "Neighbor error: %s:%u %s", neighbor.ip.data(), neighbor.port, e.what());
 		}
 	}
@@ -87,9 +84,10 @@ namespace Index {
 			Log.d("Indexer", "Propagating query %s %llu %u", k_List.data(), uid, TTL);
 			auto clt = rpc::client(neighbor.ip, neighbor.port);
 			clt.set_timeout(timeout);
-			//Log.d("Indexer", "Calling %llu", uid);
 			EntryResults _R = clt.call(k_List, uid, TTL, _port).as<EntryResults>();
 			EntryResults _Ra;
+
+			Log.d("Indexer", "Returned from propagating query %s %llu %u", k_List.data(), uid, TTL);
 
 			for (Entry::searchEntry &rs : _R) { // TODO: O(n^2)
 				bool found = false;
@@ -106,9 +104,7 @@ namespace Index {
 			}
 
 			R.insert(R.end(), _Ra.begin(), _Ra.end());
-			//R.insert(R.end(), _R.begin(), _R.end());
-			//Log.d("Indexer", "Calling Finished %llu", uid);
-		} catch (const std::runtime_error &e) { // TODO: catch custom error
+		} catch (const std::exception &e) {
 			Log.w("Indexer", "Neighbor error: %s", e.what());
 		}
 	}
@@ -118,11 +114,9 @@ namespace Index {
 			Log.d("Indexer", "Propagating query %s %llu %u", k_Request.data(), uid, TTL);
 			auto clt = rpc::client(neighbor.ip, neighbor.port);
 			clt.set_timeout(timeout);
-			//Log.d("Indexer", "Calling %llu", uid);
 			auto _R = clt.call(k_Request, uid, TTL, hash, _port).as<PeerResults>();
-			//Log.d("Indexer", "Calling Finished %llu", uid);
 			R += _R;
-		} catch (const std::runtime_error &e) { // TODO: catch custom error
+		} catch (const std::exception &e) {
 			Log.w("Indexer", "Neighbor error: %s", e.what());
 		}
 	}
@@ -141,12 +135,13 @@ namespace Index {
 			// Propagated requests
 
 			srv->bind(k_Search, [&](uid_t uid, int32_t TTL, string query, unsigned short _port) -> EntryResults {
+				Log.d("Indexer", "Request Search %d", TTL);
 				uidMux.lock();
 				if (UIDs.contains(uid)) {
 					uidMux.unlock();
 					Log.e("Indexer", "UID already in progress %llu", uid);
 					rpc::this_handler().respond_error("UID already in progress");
-					// Returns
+					return EntryResults();
 				}
 				UIDs.insert(uid);
 				uidMux.unlock();
@@ -156,8 +151,12 @@ namespace Index {
 				if (TTL == -1) { // -1 means an actual peer is making the request, initialize to total super peers
 					if (all2all) {
 						TTL = 0; // propagated calls will not propagate any further
+
+						string _addr = rpc::this_session().remoteAddr;
+
 						for (conn_t neighbor : neighbors) {
-							listEntries(uid, TTL, neighbor, R, serverConn.port);
+							if (neighbor.ip != _addr || neighbor.port != _port)
+								searchEntries(uid, TTL, query, neighbor, R, serverConn.port);
 						}
 					} else {
 						TTL = _TTL;
@@ -187,12 +186,13 @@ namespace Index {
 					  });
 
 			srv->bind(k_List, [&](uid_t uid, int32_t TTL, unsigned short _port) -> EntryResults {
+				Log.d("Indexer", "Request Listing %d", TTL);
 				uidMux.lock();
 				if (UIDs.contains(uid)) {
 					uidMux.unlock();
 					Log.e("Indexer", "UID already in progress %llu", uid);
 					rpc::this_handler().respond_error("UID already in progress");
-					// Returns
+					return EntryResults();
 				}
 				UIDs.insert(uid);
 				uidMux.unlock();
@@ -202,8 +202,11 @@ namespace Index {
 				if (TTL == -1) { // -1 means an actual peer is making the request, initialize to total super peers
 					if (all2all) {
 						TTL = 0; // propagated calls will not propagate any further
+						string _addr = rpc::this_session().remoteAddr;
+
 						for (conn_t neighbor : neighbors) {
-							listEntries(uid, TTL, neighbor, R, serverConn.port);
+							if (neighbor.ip != _addr || neighbor.port != _port)
+								listEntries(uid, TTL, neighbor, R, serverConn.port);
 						}
 					} else {
 						TTL = _TTL;
@@ -226,19 +229,23 @@ namespace Index {
 					}
 
 					listEntries(uid, TTL, neighbor, R, serverConn.port);
+				} else {
+					Log.d("Indexer", "TTL finished %llu", uid);
 				}
 
 				UIDs.erase(uid); // Potential to run query again? clear at a later time?
+				Log.d("Indexer", "Returning results");
 				return R;
 					  });
 
 			srv->bind(k_Request, [&](uid_t uid, int32_t TTL, entryHash_t hash, unsigned short _port) -> PeerResults {
+				Log.d("Indexer", "Request File %d", TTL);
 				uidMux.lock();
 				if (UIDs.contains(uid)) {
 					uidMux.unlock();
 					Log.e("Indexer", "UID already in progress %llu", uid);
 					rpc::this_handler().respond_error("UID already in progress");
-					// Returns
+					return PeerResults();
 				}
 				UIDs.insert(uid);
 				uidMux.unlock();
@@ -248,8 +255,11 @@ namespace Index {
 				if (TTL == -1) { // -1 means an actual peer is making the request, initialize to total super peers
 					if (all2all) {
 						TTL = 0; // propagated calls will not propagate any further
+						string _addr = rpc::this_session().remoteAddr;
+
 						for (conn_t neighbor : neighbors) {
-							requestPeers(uid, TTL, hash, neighbor, R, serverConn.port);
+							if (neighbor.ip != _addr || neighbor.port != _port)
+								requestPeers(uid, TTL, hash, neighbor, R, serverConn.port);
 						}
 					} else {
 						TTL = _TTL;
@@ -296,7 +306,7 @@ namespace Index {
 	void Indexer::start() {
 		if (isServer) {
 			Log.i("Indexer", "Running Server");
-			srv->async_run(std::thread::hardware_concurrency()*2);
+			srv->async_run(std::thread::hardware_concurrency() * 2);
 		} else {
 			Log.i("Indexer", "Running Client");
 			while (true) {
