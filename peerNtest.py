@@ -53,7 +53,7 @@ def runTest(maxID, active, all2all):
     for i in range(maxID - active, maxID + 1):
         procs.append(subprocess.Popen(["TestPeer.exe", f"-i {i}", "-e", "-c test_config.json", "-a" if all2all else ""]))
 
-    sleep(5)
+    sleep(1.5)
 
     open("start", "w").close()
 
