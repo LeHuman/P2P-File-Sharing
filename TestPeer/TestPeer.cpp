@@ -53,6 +53,7 @@ std::uniform_int_distribution<std::mt19937::result_type> rndStr(0, testStrs.size
 std::uniform_int_distribution<std::mt19937::result_type> rndID(0, 20000);
 std::uniform_int_distribution<std::mt19937::result_type> rndBool(0, 1);
 std::uniform_int_distribution<std::mt19937::result_type> rndDel(0, 5);
+std::uniform_int_distribution<std::mt19937::result_type> rndWait(200, 1000);
 
 void listener(Util::File file, Util::File::Status status) { // TODO: not thread safe, peers can potentially connect with outdated info between calls
 	if (!std::filesystem::is_regular_file(std::filesystem::path(file.path)) && status != Util::File::Status::erased) {
@@ -200,7 +201,7 @@ int main(int argc, char *argv[]) {
 				std::cout << c << std::endl;
 				Index::entryHash_t h = getRandomListing();
 
-				//std::this_thread::sleep_for(std::chrono::milliseconds(50));
+				std::this_thread::sleep_for(std::chrono::milliseconds(rndWait(rng)));
 
 				if (h != "") {
 					auto start = std::chrono::high_resolution_clock::now();
@@ -213,22 +214,20 @@ int main(int argc, char *argv[]) {
 				auto dirIter = std::filesystem::directory_iterator(folder);
 				int fileCount = std::count_if(begin(dirIter), end(dirIter), [](auto &entry) { return entry.is_regular_file(); });
 
-				std::this_thread::sleep_for(std::chrono::milliseconds(50));
+				std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
 				if (fileCount > 0 && rndDel(rng)) {
 					deleteRndFile(folder);
 				}
 
-				std::this_thread::sleep_for(std::chrono::milliseconds(50));
+				std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
 				if (fileCount < 1 && rndDel(rng)) {
 					outputText(testStrs[rndStr(rng)], (fp / ("testFile" + std::to_string(rndID(rng)) + ".txt")).string());
 				}
 
-				//auto ping = indexer.ping().count();
-				//c--;
 				csv << duration.count() << ',';
-				std::this_thread::sleep_for(std::chrono::milliseconds(50));
+				std::this_thread::sleep_for(std::chrono::milliseconds(200));
 			}
 		} catch (const std::exception &e) {
 			Log.e("Test Error", "%s", e.what());
