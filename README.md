@@ -1,6 +1,6 @@
 # P2P File Sharing
 
-## CS 550 - PA 1
+## CS 550 - PA 2
 
 Basic file sharing implementation using C++20 and built with CMake
 
