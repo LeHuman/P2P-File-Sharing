@@ -26,7 +26,7 @@ int main(int argc, char *argv[]) {
 		// Get command line arguments using library
 		TCLAP::CmdLine cmd("Create a P2P Client using static config", ' ');
 
-		TCLAP::ValueArg<uint32_t> idArg("i", "identity", "Unique ID identifying this client", false, 9, "int", cmd);
+		TCLAP::ValueArg<uint32_t> idArg("i", "identity", "Unique ID identifying this client", false, 0, "int", cmd);
 		TCLAP::ValueArg<std::string> confArg("c", "configFile", "The config file to use", false, "../../../../test_config.json", "filePath", cmd);
 		TCLAP::ValueArg<std::string> fldrArg("f", "downloadFolder", "The local folder files should be uploaded and downloaded to", false, "", "directory", cmd);
 		TCLAP::SwitchArg all2all("a", "all2all", "enable all2all mode", cmd);
