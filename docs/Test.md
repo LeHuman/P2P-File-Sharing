@@ -56,6 +56,18 @@ This test concurrently ran 29 test peers where 10 of them were super peers. Only
 
 This test is performed for both the linear and all to all topology.
 
+#### Topology setup
+
+\mbox{}
+
+This is a graphic which visualizes how each client is setup using the static configuration.
+
+\includegraphics[width=\textwidth]{TestConfig.png}
+
+#### Results
+
+This graph plots both the times for the linear and all to all setup.
+
 \includegraphics[width=\textwidth]{PA2Graph.png}
 
 Linear topology is probably not actually used in practice as it requires for all supers peers to either keep track of active requests, keep track of their neighbors, and return results through all the supers peers. There is simply a lot of extra overhead when using a linear topology. The All to All topology is not only more straight forward to implement but also takes advantage of parallel operation.

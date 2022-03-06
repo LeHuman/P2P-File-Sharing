@@ -26,7 +26,7 @@ header-includes: |
 
 ## Initial Constraints
 
-This project code is portable to various devices. This greatly affected the design in terms of what libraries or functionality I had available to me. It runs on Linux, Linux Arm, and Windows (Mac untested). However, I did put my focus on Windows as that is where I did my programming, meaning there might be a bug or two that I missed on Unix systems.
+This project code is portable to various devices. This greatly affected the design in terms of what libraries or functionality I had available to me. It runs on Linux, Linux Arm, and Windows (Mac untested). However, I did put my focus on Windows as that is where I did my programming, meaning there might be a bug or two that I missed on Unix systems. For PA2, I only tested on windows.
 
 This project is written in C++20 meaning it requires a more modern compiler and meant to run on newer devices. This does, however, allow me to use more modern C++ features.
 
@@ -117,11 +117,11 @@ When an error occurs with a peer, ID mismatch, hash mismatch, file not found, et
 Clients have various functions exposed for them to use.
 
 - `ping`
-  - Ping the server to check it's response time
+  - Ping a client's superpeer's indexing server to check it's response time
 - `list`
-  - List all the files on the indexing server
+  - List all the files available on the network
 - `search [query]`
-  - Search for the query as a substring the in the name of all the files on the indexing server
+  - Search for the query as a substring the in the name of all the files on the network
 - `request [hash]`
   - Request a specific file, given the hash
 - `register` & `deregister`

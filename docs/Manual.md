@@ -72,6 +72,8 @@ Where:
 
 ##### *Simple* - Local Only
 
+\mbox{}
+
 `.\Client.exe -i 0 -c "test_config.json" -f "watchFolder"`
 
 ## Using the Interactive Console
@@ -81,11 +83,11 @@ The main interface with this program involves using the terminal of your device 
 The following options are allowed when using the client.
 
 - `ping`
-  - Ping the server to check it's response time, meaning, how long the server takes to respond
+  - Ping a client's superpeer's indexing server to check it's response time
 - `list`
-  - List all the files on the indexing server, meaning, show all the files we can either download or already have
+  - List all the files available on the network, meaning, show all the files we can either download or already have
 - `search [query]`
-  - Search for the query as a substring the in the name of all the files on the indexing server, meaning, search for a file where `query` is what you want to look for
+  - Search for the query as a substring the in the name of all the files on the network, meaning, search for a file where `query` is what you want to look for
   - Example: `search am`
     - Search for files with an `am` in it's name
 - `request [hash]`
