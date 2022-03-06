@@ -192,11 +192,6 @@ int main(int argc, char *argv[]) {
 	if (enabled.getValue()) {
 		Log.i("Test", "Enabled");
 
-		//void *block = malloc(999999999);
-
-		//while (true) {
-		//}
-
 		try {
 			while (indexer.connected() && c > 0) {
 				std::chrono::microseconds duration;
