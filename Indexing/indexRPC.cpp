@@ -11,6 +11,7 @@
 
 #include <thread>
 #include <chrono>
+#include <future>
 
 #include "rpc/server.h"
 #include "rpc/this_handler.h"
@@ -51,74 +52,57 @@ namespace Index {
 		isServer = false;
 	}
 
-	void searchEntries(uid_t &uid, int32_t &TTL, string &query, conn_t &neighbor, EntryResults &R, unsigned short _port) {
+	EntryResults searchEntries(uid_t uid, int32_t TTL, string query, conn_t neighbor, unsigned short _port) {
 		try {
 			Log.d("Indexer", "Propagating query %s %llu %u", k_Search.data(), uid, TTL);
 			auto clt = rpc::client(neighbor.ip, neighbor.port);
 			clt.set_timeout(timeout);
-			EntryResults _R = clt.call(k_Search, uid, TTL, query, _port).as<EntryResults>();
-			EntryResults _Ra;
-
-			for (Entry::searchEntry &rs : _R) { // TODO: O(n^2)
-				bool found = false;
-				for (Entry::searchEntry &ls : R) {
-					if (ls == rs) {
-						ls += rs;
-						found = true;
-						break; // There should at most be one exact duplicate per entry
-					}
-				}
-				if (!found) {
-					_Ra.push_back(rs);
-				}
-			}
-
-			R.insert(R.end(), _Ra.begin(), _Ra.end());
+			return clt.call(k_Search, uid, TTL, query, _port).as<EntryResults>();
 		} catch (const std::exception &e) {
 			Log.w("Indexer", "Neighbor error: %s:%u %s", neighbor.ip.data(), neighbor.port, e.what());
 		}
 	}
 
-	void listEntries(uid_t &uid, int32_t &TTL, conn_t &neighbor, EntryResults &R, unsigned short _port) {
+	EntryResults listEntries(uid_t uid, int32_t TTL, conn_t neighbor, unsigned short _port) {
 		try {
 			Log.d("Indexer", "Propagating query %s %llu %u", k_List.data(), uid, TTL);
 			auto clt = rpc::client(neighbor.ip, neighbor.port);
 			clt.set_timeout(timeout);
-			EntryResults _R = clt.call(k_List, uid, TTL, _port).as<EntryResults>();
-			EntryResults _Ra;
-
-			Log.d("Indexer", "Returned from propagating query %s %llu %u", k_List.data(), uid, TTL);
-
-			for (Entry::searchEntry &rs : _R) { // TODO: O(n^2)
-				bool found = false;
-				for (Entry::searchEntry &ls : R) {
-					if (ls == rs) {
-						ls += rs;
-						found = true;
-						break; // There should at most be one exact duplicate per entry
-					}
-				}
-				if (!found) {
-					_Ra.push_back(rs);
-				}
-			}
-
-			R.insert(R.end(), _Ra.begin(), _Ra.end());
+			return clt.call(k_List, uid, TTL, _port).as<EntryResults>();
 		} catch (const std::exception &e) {
 			Log.w("Indexer", "Neighbor error: %s", e.what());
 		}
 	}
 
-	void requestPeers(uid_t &uid, int32_t &TTL, string &hash, conn_t &neighbor, PeerResults &R, unsigned short _port) {
+	PeerResults requestPeers(uid_t uid, int32_t TTL, string hash, conn_t neighbor, unsigned short _port) {
 		try {
 			Log.d("Indexer", "Propagating query %s %llu %u", k_Request.data(), uid, TTL);
 			auto clt = rpc::client(neighbor.ip, neighbor.port);
 			clt.set_timeout(timeout);
-			auto _R = clt.call(k_Request, uid, TTL, hash, _port).as<PeerResults>();
-			R += _R;
+			return clt.call(k_Request, uid, TTL, hash, _port).as<PeerResults>();
 		} catch (const std::exception &e) {
 			Log.w("Indexer", "Neighbor error: %s", e.what());
 		}
+	}
+
+	void combineEntries(EntryResults &R, EntryResults &_R) {
+		EntryResults _Ra;
+
+		for (Entry::searchEntry &rs : _R) { // TODO: O(n^2)
+			bool found = false;
+			for (Entry::searchEntry &ls : R) {
+				if (ls == rs) {
+					ls += rs; // TODO: time stamp is possibly wrong, due to race condition
+					found = true;
+					break; // There should at most be one exact duplicate per entry
+				}
+			}
+			if (!found) {
+				_Ra.push_back(rs);
+			}
+		}
+
+		R.insert(R.begin(), _Ra.begin(), _Ra.end());
 	}
 
 	void Indexer::bindFunctions() {
@@ -146,18 +130,27 @@ namespace Index {
 				UIDs.insert(uid);
 				uidMux.unlock();
 
-				auto R = database->search(query);
+				EntryResults R = database->search(query);
 
 				if (TTL == -1) { // -1 means an actual peer is making the request, initialize to total super peers
 					if (all2all) {
 						TTL = 0; // propagated calls will not propagate any further
 
 						string _addr = rpc::this_session().remoteAddr;
+						vector<std::future<EntryResults>> results;
+						EntryResults _R;
 
 						for (conn_t neighbor : neighbors) {
 							if (neighbor.ip != _addr || neighbor.port != _port)
-								searchEntries(uid, TTL, query, neighbor, R, serverConn.port);
+								results.push_back(std::async(searchEntries, uid, TTL, query, neighbor, serverConn.port));
 						}
+
+						for (std::future<EntryResults> &result : results) {
+							EntryResults _Ra = result.get();
+							_R.insert(_R.begin(), _Ra.begin(), _Ra.end());
+						}
+
+						combineEntries(R, _R);
 					} else {
 						TTL = _TTL;
 					}
@@ -178,7 +171,8 @@ namespace Index {
 						}
 					}
 
-					searchEntries(uid, TTL, query, neighbor, R, serverConn.port);
+					auto _Ra = searchEntries(uid, TTL, query, neighbor, serverConn.port);
+					combineEntries(R, _Ra);
 				}
 
 				UIDs.erase(uid); // Potential to run query again? clear at a later time?
@@ -202,12 +196,23 @@ namespace Index {
 				if (TTL == -1) { // -1 means an actual peer is making the request, initialize to total super peers
 					if (all2all) {
 						TTL = 0; // propagated calls will not propagate any further
+
 						string _addr = rpc::this_session().remoteAddr;
+						vector<std::future<EntryResults>> results;
+						EntryResults _R;
 
 						for (conn_t neighbor : neighbors) {
 							if (neighbor.ip != _addr || neighbor.port != _port)
-								listEntries(uid, TTL, neighbor, R, serverConn.port);
+								results.push_back(std::async(listEntries, uid, TTL, neighbor, serverConn.port));
 						}
+
+						for (std::future<EntryResults> &result : results) {
+							EntryResults _Ra = result.get();
+							_R.insert(_R.begin(), _Ra.begin(), _Ra.end());
+						}
+
+						combineEntries(R, _R);
+
 					} else {
 						TTL = _TTL;
 					}
@@ -221,14 +226,15 @@ namespace Index {
 
 					conn_t neighbor;
 
-					for (auto n : neighbors) {
+					for (conn_t &n : neighbors) {
 						if (n.ip != _addr || n.port != _port) { // Either differing attribute means we aren't propagating to the same super peer
 							neighbor = n;
 							break;
 						}
 					}
 
-					listEntries(uid, TTL, neighbor, R, serverConn.port);
+					auto _R = listEntries(uid, TTL, neighbor, serverConn.port);
+					combineEntries(R, _R);
 				} else {
 					Log.d("Indexer", "TTL finished %llu", uid);
 				}
@@ -255,12 +261,20 @@ namespace Index {
 				if (TTL == -1) { // -1 means an actual peer is making the request, initialize to total super peers
 					if (all2all) {
 						TTL = 0; // propagated calls will not propagate any further
+
 						string _addr = rpc::this_session().remoteAddr;
+						vector<std::future<PeerResults>> results;
+						EntryResults _R;
 
 						for (conn_t neighbor : neighbors) {
 							if (neighbor.ip != _addr || neighbor.port != _port)
-								requestPeers(uid, TTL, hash, neighbor, R, serverConn.port);
+								results.push_back(std::async(requestPeers, uid, TTL, hash, neighbor, serverConn.port));
 						}
+
+						for (std::future<PeerResults> &result : results) {
+							R += result.get();
+						}
+
 					} else {
 						TTL = _TTL;
 					}
@@ -274,14 +288,14 @@ namespace Index {
 
 					conn_t neighbor;
 
-					for (auto n : neighbors) {
+					for (conn_t &n : neighbors) {
 						if (n.ip != _addr || n.port != _port) { // Either differing attribute means we aren't propagating to the same super peer
 							neighbor = n;
 							break;
 						}
 					}
 
-					requestPeers(uid, TTL, hash, neighbor, R, serverConn.port);
+					R += requestPeers(uid, TTL, hash, neighbor, serverConn.port);
 				}
 
 				UIDs.erase(uid); // Potential to run query again? clear at a later time?
