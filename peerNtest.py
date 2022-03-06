@@ -84,17 +84,17 @@ def main():
     clean()
 
     for i in range(27, -1, -1):
-        runTest(28, 27 - i, False)
-        peers.append(28 - i)
-        avgs.append(readCSVs())
-        clean()
-        pd.DataFrame({"Active Peers": peers, "Avg micros": avgs}).to_excel("Average Runtimes Linear.xlsx")
-    
-    for i in range(27, -1, -1):
         runTest(28, 27 - i, True)
         peers.append(28 - i)
         avgs.append(readCSVs())
         clean()
         pd.DataFrame({"Active Peers": peers, "Avg micros": avgs}).to_excel("Average Runtimes All2All.xlsx")
+
+    for i in range(27, -1, -1):
+        runTest(28, 27 - i, False)
+        peers.append(28 - i)
+        avgs.append(readCSVs())
+        clean()
+        pd.DataFrame({"Active Peers": peers, "Avg micros": avgs}).to_excel("Average Runtimes Linear.xlsx")
 
 main()
