@@ -22,7 +22,7 @@ header-includes: |
 **Isaias Rivera**  
 **A20442116**
 
-# P2P File Sharing - Gnutella - Design
+# P2P File Sharing - Super-peers - Design
 
 ## Initial Constraints
 

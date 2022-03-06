@@ -24,7 +24,7 @@ header-includes: |
 **Isaias Rivera**  
 **A20442116**
 
-# P2P File Sharing - Manual
+# P2P File Sharing - Super-peers - Manual
 
 ## Note
 
@@ -96,29 +96,31 @@ The following options are allowed when using the client.
 - `q` or `quit` or `exit`
   - Stop the interactive console, this will close the client
 
-To stop the server, simply close the terminal or press `Ctrl + C`
-
 Remember, to add or remove files for sharing. Simply delete or add them to your folder that you initially created for the client.
 
 ## Overall Example
 
 This example will demonstrate following the procedures for a *simple* local case.
 
+### Topology
+
+Because this is a simple example, it will only use two super-peers and two leaf-nodes, layed out as such
+
+\includegraphics[width=\textwidth]{TestConfigSimple.png}
+
+The config file for this is included.
+
 ### Initial setup
 
-Here I have layed everything out onto one screen, simply take note of what everything is. Note that your terminal may be separate windows instead of just one.
+Here we can see where the directories are, relative to the client program.
 
-\includegraphics[width=\textwidth]{TestInital.png}
+\includegraphics[width=\textwidth]{foldersetup.png}
 
 \newpage
 
-Here we can also see the file contents for my test file.
+And here we can see the files in each directory
 
-\includegraphics[width=\textwidth]{TestFileCont0.png}
-
-And before that we can see where the directories are relative to the program.
-
-\includegraphics[width=\textwidth]{TestdirLoc.png}
+\includegraphics[width=\textwidth]{filesetup.png}
 
 And just as a tip, you can shift right click on Windows in the same directory as the program to more easily open a terminal.
 
@@ -128,49 +130,91 @@ And just as a tip, you can shift right click on Windows in the same directory as
 
 Here we can see the commands are setup to be run.
 
-\includegraphics[width=\textwidth]{TestCmds.png}
+\includegraphics[width=\textwidth]{initsetup.png}
 
-`.\Server.exe` to start the server
+`.\Client.exe -i 0 -c test_config_simple.json` start super-peer with id 0  
+`.\Client.exe -i 1 -c test_config_simple.json` start super-peer with id 1  
+`.\Client.exe -i 2 -c test_config_simple.json` start leaf-node with id 2  
+`.\Client.exe -i 3 -c test_config_simple.json` start leaf-node with id 3  
 
-`.\Client.exe -i 0 -f 0` to start the client with id `0` and watching the folder named `0`
+\small
 
-`.\Client.exe -i 1 -f 1` to start the client with id `1` and watching the folder named `1`
+**NOTE: if no argument is given for the watchfolder it defaults to `watchfolderID` where `ID` is the id of the client.**
 
-\includegraphics[width=\textwidth]{TestFirstRun.png}
+\normalsize
 
-After running them all, you might notice the prompt `Client >` becomes a bit garbled, simply pressing `enter` once should fix it
+\includegraphics[width=\textwidth]{start.png}
 
-\includegraphics[width=\textwidth]{TextPrompt.png}
+After running them all, you might notice the prompt `Client-x >` becomes a bit garbled, simply pressing `enter` once should fix it. Also, take note that the `x` is the id of the client.
 
-### Running a search
+\newpage
 
-Here we are searching for the file we want, just looking for the letter `t` is enough. Note that we are using the client that is not watching the folder with the test file already in it.
+### Listing all files
 
-\includegraphics[width=\textwidth]{TestSearch.png}
+Here we are listing all the available files from client 3
 
-Make sure to copy the hash, in this case it would be `E2D0FE1585A63EC6009C8016FF8DDA8B17719A6`
-`37405A4E23C0FF81339148249`
+We run the command `list`
+
+\includegraphics[width=\textwidth]{calledlist.png}
+
+Take notice of the `Hash` associated with each file listed, this is what we use to request a file to download
+
+Lets focus on the file `dup.txt` which has the hash of `395A71419DADACF6653548C449A207536831AF86ECF265E2067E0377A14A447F`
+
+\newpage
 
 ### Requesting a file
 
-Now we need to actually request this file by running the following command on the same client.
+Now we need to actually request this file by running the following command from client 3
 
-`request E2D0FE1585A63EC6009C8016FF8DDA8B17719A637405A4E23C0FF81339148249`
+We run the command `request 395A71419DADACF6653548C449A207536831AF86ECF265E2067E0377A14A447F`
 
-After this runs, we can now see that the file is in the second directory.
+After this runs, we can now see that the file is in the watchfolder for client 3.
 
-\includegraphics[width=\textwidth]{TestDownload.png}
+\includegraphics[width=\textwidth]{requestdup.png}
 
-Just to make sure, we can see that the file has the same contents as it's copy.
+\newpage
 
-\includegraphics[width=\textwidth]{TestSame.png}
+### Search for a file
+
+Here we can now see, after searching for `dup` from client 3, that there are now three peers which have the same file.
+
+We run the command `search dup`
+
+\includegraphics[width=\textwidth]{searchdup.png}
+
+\newpage
+
+### Super-peer listing all files
+
+Here we can see super-peer 0 listing all the available files
+
+We run the command `list`
+
+\includegraphics[width=\textwidth]{superlist.png}
+
+\newpage
+
+### Super-peer requesting a file
+
+Here we can see super-peer 1 request the file `2.txt` using it's appropriate hash
+
+We run the command `request 8C8C5354325CFD52914A7B36D8A28695F5DEDCBBABEE7C13BE2E02B0CAEF5A6D`
+
+\includegraphics[width=\textwidth]{superrequest.png}
+
+After this runs, we can also now see that the file is in the watchfolder for client 1.
+
+\newpage
 
 ### Closing
 
-We now can close both clients with `q` and the server with `Ctrl+C`.
+We now can close all clients with `q`.
 
-\includegraphics[width=\textwidth]{TestClosing.png}
+\includegraphics[width=\textwidth]{closingtime.png}
 
-Here everything has now closed and we are done.
+\newpage
 
-\includegraphics[width=\textwidth]{TestClosed.png}
+Here, everything has now closed and we are done.
+
+\includegraphics[width=\textwidth]{finishedG.png}

@@ -24,9 +24,9 @@ header-includes: |
 **Isaias Rivera**  
 **A20442116**
 
-# P2P File Sharing - Tests
+# P2P File Sharing - Super-peers - Tests
 
-A special binary was used which does not include the interactive terminal and helps automates some of the testing.
+A special binary was used which does not include the interactive terminal and helps automate some of the testing.
 This *test peer* does the following.
 
 - Files are randomly generated from a pool of set strings, meaning, peers will often generate similar files.
@@ -75,4 +75,4 @@ This graph plots both the times for the linear and all to all topologies.
 \includegraphics[width=\textwidth]{PA2Graph.png}
 
 Linear topology is probably not actually used in practice as it requires for all supers peers to either keep track of active requests, keep track of their neighbors, and return results through all the supers peers. There is simply a lot of extra overhead when using a linear topology. The All to All topology is not only more straight forward to implement but also takes advantage of parallel operation.
-On average, the response time for both topologies grows similarly. However, the linear topology has more overhead, meaning it is always slower than the all to all topology. Because these tests were all run on the same machine, I imagine this difference would be a magnitude higher if it were actually in production.
+On average, the response time for both topologies grows similarly. However, the linear topology has more overhead, meaning it is always slower than the all to all topology. Because these tests were all run on the same machine, I imagine this difference would be a magnitude higher if it were actually deployed.
