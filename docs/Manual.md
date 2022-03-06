@@ -37,73 +37,42 @@ The typical procedure for using this program is as follows
 
 1. Create valid folders for each client
 2. Move files to folders for each client that want to be shared
-3. Start the server
-4. Start at least two clients, using the folders previously created
+3. Create the static connection config (or use the one provided)
+4. Start at least two clients, using the folders previously created, and where at least one of the clients is a super-peer
 5. On one client, search for file
 6. Request file, given the file hash (The long string of characters) from searching
-7. Wait for file download or repeat steps 2 or 5-6
+7. Wait for file download or repeat steps 5-6
 8. Close all clients
-9. Close server
 
 ## Program arguments
 
 A \<int\> just means it should be a number.
 
-### Server
-
-Usage:
-
-   Server  [-h] [--version] [-p \<int\>]
-
-Where:
-
-   -p \<int\>,  --port \<int\>
-     The port this server should listen to
-
-#### Example
-
-##### *Simple* - Local Only
-
-`.\Server.exe`
-
-##### Given Args
-
-`.\Server.exe -p 44455`
-
 ### Client
 
 Usage:
 
-   Client  [-h] [--version] [-c \<int\>] [-e \<int\>] [-s \<ip address\>] -f \<directory\> -i \<int\>
+   Client  [-ah] [--version] [-c \<filePath\>] [-f \<directory\>] [-i \<int\>]
 
 Where:
 
    -i \<int\>,  --identity \<int\>
-     (required) Unique ID identifying this client
+     Unique ID identifying this client
 
-   -s \<ip address\>,  --serverIP \<ip address\>
-     The indexing server IP address this client should connect to
-
-   -e \<int\>,  --serverPort \<int\>
-     The indexing server Port this client should use
-
-   -c \<int\>,  --clientPort \<int\>
-     The client Port other peers should connect to
+   -c \<filePath\>,  --configFile \<filePath\>
+     The config file to use
 
    -f \<directory\>,  --downloadFolder \<directory\>
-     (required) The local folder files should be uploaded and downloaded to
+     The local folder files should be uploaded and downloaded to
+
+   -a,  --all2all
+     enable all2all mode
 
 #### Example
 
 ##### *Simple* - Local Only
 
-`.\Client.exe -i 45 -f "watchFolder"`
-
-**Make sure to replace `watchFolder` with a folder directory that exists, otherwise, create a folder next to the program named `watchFolder`**
-
-##### Given Args
-
-`.\Client -i 791 -c 44910 -s "192.168.1.200" -e 55555 -f "../../../../testFolder"`
+`.\Client.exe -i 0 -c "test_config.json" -f "watchFolder"`
 
 ## Using the Interactive Console
 
@@ -125,7 +94,7 @@ The following options are allowed when using the client.
 - `q` or `quit` or `exit`
   - Stop the interactive console, this will close the client
 
-To stop the server simple close the terminal or press `Ctrl + C`
+To stop the server, simply close the terminal or press `Ctrl + C`
 
 Remember, to add or remove files for sharing. Simply delete or add them to your folder that you initially created for the client.
 
