@@ -64,10 +64,15 @@ This is a graphic which visualizes how each client is setup using the static con
 
 \includegraphics[width=\textwidth]{TestConfig.png}
 
+\newpage
+
 #### Results
 
-This graph plots both the times for the linear and all to all setup.
+\mbox{}
+
+This graph plots both the times for the linear and all to all topologies.
 
 \includegraphics[width=\textwidth]{PA2Graph.png}
 
 Linear topology is probably not actually used in practice as it requires for all supers peers to either keep track of active requests, keep track of their neighbors, and return results through all the supers peers. There is simply a lot of extra overhead when using a linear topology. The All to All topology is not only more straight forward to implement but also takes advantage of parallel operation.
+On average, the response time for both topologies grows similarly. However, the linear topology has more overhead, meaning it is always slower than the all to all topology. Because these tests were all run on the same machine, I imagine this difference would be a magnitude higher if it were actually in production.
