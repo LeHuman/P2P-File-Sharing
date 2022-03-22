@@ -4,9 +4,9 @@
  * @brief The source code for the exchanger module
  * @version 0.1
  * @date 2022-02-20
- * 
+ *
  * @copyright Copyright (c) 2022
- * 
+ *
  */
 
 #include <iostream>
@@ -51,6 +51,7 @@ namespace Exchanger {
 	};
 
 	static const string ID = "Exchanger";
+	static const string iID = "Exchanger Invalidation";
 	static const string sID = "Exchanger Server";
 	static const string cID = "Exchanger Client";
 
@@ -58,17 +59,34 @@ namespace Exchanger {
 		stream.expires_after(std::chrono::seconds(5));
 	}
 
-    /**
-     * @brief The state machine for the peer that is sending a file
-     */
+	void fileInvalidate(const Index::Peer &peer, entryHash_t hash) {
+		try {
+			Log.d(iID, "Connecting to peer: %d", peer.id);
+			tcp::iostream stream(peer.connInfo.ip, std::to_string(peer.connInfo.port));
+			stream.expires_after(std::chrono::seconds(60));
+			Log.d(iID, "sending hash: %s", hash.data());
+			uint16_t hashLen = hash.size();
+
+			stream.write((char *)&hashLen, sizeof(uint16_t));
+			stream.write(hash.data(), hashLen);
+		} catch (std::exception &e) {
+			Log.e(sID, "Socket Server Exception: %s\n", e.what());
+		}
+	}
+
+	/**
+	 * @brief The state machine for the peer that is sending a file
+	 */
 	void Exchanger::fileSender(uint32_t id, tcp::iostream stream) {
-		State state = State::S_Accept;
+		State state = State::C_Connect;
 		uint16_t hashLen = 0;
 		uint64_t fileSize = 0;
 		uint64_t totalWritten = 0;
 		double lastWritten = 0;
 		char status = 0;
 		std::streamsize written = 1;
+
+		Mode mode;
 
 		asio::error_code error;
 		Index::entryHash_t hash;
@@ -82,10 +100,29 @@ namespace Exchanger {
 			while (state != State::Disconnect) {
 				timeout(stream);
 				switch (state) {
+					case State::C_Connect:
+						stream.read(&status, 1);
+						switch (status) { // Get connection mode
+							case Mode::P2PFile:
+								mode = Mode::P2PFile;
+								state = State::S_Accept;
+								break;
+							case Mode::InvalidateFile:
+								mode = Mode::InvalidateFile;
+								state = State::S_FindFile;
+								break;
+							default:
+								Log.e(sID, "Invalid connection mode: %d", status);
+								state = State::Disconnect;
+								break;
+						}
+						timeout(stream);
+						break;
 					case State::S_Accept:
 						Log.d(sID, "Sending ID");
 						stream.write((char *)&id, sizeof(uint32_t));
 						state = State::S_FindFile;
+						timeout(stream);
 						break;
 					case State::S_FindFile:
 						Log.d(sID, "Reading hash size");
@@ -104,6 +141,15 @@ namespace Exchanger {
 						timeout(stream);
 						if ((it = localFiles.find(hash)) != localFiles.end()) { // File exists, open file and send size of file
 							file = it->second;
+							if (mode == Mode::InvalidateFile) {
+								if (invalidationListener != nullptr) {
+									stream.close();
+									Log.d(sID, "Invalidating hash: %s", hash.data());
+									invalidationListener(file);
+								}
+								state = State::Disconnect;
+								break;
+							}
 							fileOut = std::ifstream(file.path, std::ios_base::in | std::ios_base::binary); // TODO: ensure file has not changed, confirm localFiles matches details
 							fileSize = file.size;
 							Log.d(sID, "File found, sending size: %d", fileSize);
@@ -157,11 +203,11 @@ namespace Exchanger {
 		}
 	}
 
-    /**
-     * @brief The state machine for the peer that is receiving a file
-     */
+	/**
+	 * @brief The state machine for the peer that is receiving a file
+	 */
 	bool Exchanger::fileReceiver(tcp::iostream &stream, uint32_t eid, entryHash_t hash, string downloadPath) {
-		State state = State::C_ConfirmID;
+		State state = State::C_Connect;
 		uint16_t hashLen = hash.size();
 		uint64_t fileSize = 0;
 		char status = true;
@@ -177,6 +223,11 @@ namespace Exchanger {
 			while (state != State::Disconnect) {
 				timeout(stream);
 				switch (state) {
+					case State::C_Connect:
+						stream.write(&status, Mode::P2PFile);
+						state = State::C_ConfirmID;
+						timeout(stream);
+						break;
 					case State::C_ConfirmID:
 						Log.d(cID, "Receiving server ID");
 						stream.read((char *)&id, sizeof(uint32_t));
@@ -186,7 +237,7 @@ namespace Exchanger {
 							state = State::Disconnect;
 						} else {
 							Log.d(cID, "ID match, sending hash: %s", hash.data());
-							stream.expires_after(std::chrono::seconds(5));
+							timeout(stream);
 							stream.write((char *)&hashLen, sizeof(uint16_t));
 							stream.write(hash.data(), hash.size());
 							state = State::C_AllocSpace;
@@ -240,9 +291,9 @@ namespace Exchanger {
 		return status;
 	}
 
-    /**
-     * @brief Threaded function that is constantly running, listening for peers to accept a socket connection to
-     */
+	/**
+	 * @brief Threaded function that is constantly running, listening for peers to accept a socket connection to
+	 */
 	void Exchanger::listener(uint32_t id, uint16_t port) {
 		tcp::acceptor acceptor(*io_context, tcp::endpoint(tcp::v4(), port));
 
@@ -258,9 +309,9 @@ namespace Exchanger {
 	}
 
 
-    /**
-     * @brief Given a list of peers, this threaded function will attempt to connect to peers until it downloads a file
-     */
+	/**
+	 * @brief Given a list of peers, this threaded function will attempt to connect to peers until it downloads a file
+	 */
 	void Exchanger::peerResolver(Index::PeerResults results, Index::entryHash_t hash, string downloadPath) { // TODO: smarter peer selection & chunked file downloading
 		for (Index::Peer::searchEntry &item : results.peers) {
 			Log.d(ID, "Connecting to peer: %d", item.id);
@@ -269,12 +320,12 @@ namespace Exchanger {
 			if (fileReceiver(stream, item.id, hash, downloadPath))
 				return;
 		}
-        Log.f(ID, "Failed to request file: %s", downloadPath.data());
+		Log.f(ID, "Failed to request file: %s", downloadPath.data());
 	}
 
-    /**
-     * @brief Threaded function that is constantly running, waiting for request to download a file
-     */
+	/**
+	 * @brief Threaded function that is constantly running, waiting for request to download a file
+	 */
 	void Exchanger::receiver() { // TODO: set timeout
 		tcp::resolver resolver(*io_context);
 		while (running) {
@@ -291,9 +342,9 @@ namespace Exchanger {
 		running = true;
 	}
 
-    /**
-     * @brief Threaded function that runs relevant socket functions
-     */
+	/**
+	 * @brief Threaded function that runs relevant socket functions
+	 */
 	void Exchanger::_startSocket(uint32_t id, uint16_t listeningPort) {
 		try {
 			asio::signal_set signals(*io_context, SIGINT, SIGTERM);
@@ -347,6 +398,10 @@ namespace Exchanger {
 		queries.emplace(results, hash, filePath.string()); // TODO: Allow per request download path
 		cond.notify_all();
 		return true;
+	}
+
+	void Exchanger::setInvalidationListener(const std::function<void(Util::File)> &listener) {
+		invalidationListener = listener;
 	}
 
 	void Exchanger::addLocalFile(Util::File file) {

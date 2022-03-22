@@ -26,6 +26,11 @@ namespace Exchanger {
 	using std::string;
 	using Index::entryHash_t;
 
+	enum Mode : char {
+		P2PFile,
+		InvalidateFile
+	};
+
 	/**
 	 * @brief struct query_t is used to manager requests that are going to download a file
 	*/
@@ -35,6 +40,11 @@ namespace Exchanger {
 		entryHash_t hash;
 		query_t(Index::PeerResults results, string hash, string downloadPath) : results { results }, hash { hash }, downloadPath { downloadPath }{};
 	};
+
+	/**
+	 * @brief Directly push invalidation of a hash to a peer
+	 */
+	void fileInvalidate(const Index::Peer &peer, entryHash_t hash);
 
 	/**
 	 * @brief Exchanger is used to transfer files between peers
@@ -49,6 +59,8 @@ namespace Exchanger {
 		std::condition_variable cond;
 		std::queue<struct query_t> queries;
 		std::unordered_map<Index::entryHash_t, Util::File> localFiles;
+
+		std::function<void(Util::File)> invalidationListener = nullptr;
 
 		void fileSender(uint32_t id, asio::ip::tcp::iostream stream);
 		bool fileReceiver(asio::ip::tcp::iostream &stream, uint32_t eid, entryHash_t hash, string downloadPath);
@@ -68,6 +80,9 @@ namespace Exchanger {
 		 * @param downloadPath the directory to download/upload to/from
 		*/
 		Exchanger(uint32_t id, uint16_t listeningPort, string downloadPath);
+
+
+		void setInvalidationListener(const std::function<void(Util::File)> &listener);
 
 		/**
 		 * @brief stop this exchanger

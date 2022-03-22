@@ -17,6 +17,7 @@
 #include "rpc/this_handler.h"
 
 #include "indexRPC.h"
+#include "Exchanger.h"
 #include <rpc/rpc_error.h>
 #include <rpc/this_session.h>
 
@@ -85,6 +86,17 @@ namespace Index {
 		}
 	}
 
+	void invalidateEntry(uid_t uid, int32_t TTL, string hash, conn_t neighbor, unsigned short _port) {
+		try {
+			Log.d("Indexer", "Propagating query %s %llu %u", k_Invalidate.data(), uid, TTL);
+			auto clt = rpc::client(neighbor.ip, neighbor.port);
+			clt.set_timeout(timeout);
+			clt.call(k_Invalidate, uid, TTL, hash, _port);
+		} catch (const std::exception &e) {
+			Log.w("Indexer", "Neighbor error: %s", e.what());
+		}
+	}
+
 	void combineEntries(EntryResults &R, EntryResults &_R) {
 		EntryResults _Ra;
 
@@ -117,6 +129,68 @@ namespace Index {
 			srv->bind(k_Ping, [&]() {return true; });
 
 			// Propagated requests
+
+			srv->bind(k_Invalidate, [&](uid_t uid, int32_t TTL, entryHash_t hash, unsigned short _port) -> bool {
+				Log.d("Indexer", "Request Update %d", TTL);
+				uidMux.lock();
+				if (UIDs.contains(uid)) {
+					uidMux.unlock();
+					Log.e("Indexer", "UID already in progress %llu", uid);
+					rpc::this_handler().respond_error("UID already in progress");
+					return false;
+				}
+				UIDs.insert(uid);
+
+				unordered_set<Peer> invalidated = database->invalidate(hash); // TODO: inform other leaf nodes here, _port initially is the port of the peer making the invalidation request
+
+				if (pushing) {
+
+					for (const Peer &peer : invalidated) {
+						Exchanger::fileInvalidate(peer, hash);
+					}
+
+					if (TTL == -1) { // -1 means an actual peer is making the request, initialize to total super peers
+						if (all2all) {
+							TTL = 0; // propagated calls will not propagate any further
+
+							string _addr = rpc::this_session().remoteAddr;
+							vector<std::future<void>> results;
+
+							for (conn_t neighbor : neighbors) {
+								if (neighbor.ip != _addr || neighbor.port != _port)
+									results.push_back(std::async(invalidateEntry, uid, TTL, hash, neighbor, serverConn.port));
+							}
+
+							for (std::future<void> &result : results) {
+								result.wait();
+							}
+						} else {
+							TTL = _TTL;
+						}
+					}
+
+					TTL--;
+
+					if (TTL > 0) {
+						// Get connection info of this neighbor/peer to ensure we don't propagate backwards
+						string _addr = rpc::this_session().remoteAddr;
+
+						conn_t neighbor;
+
+						for (conn_t n : neighbors) {
+							if (n.ip != _addr || n.port != _port) { // Either differing attribute means we aren't propagating to the same super peer
+								neighbor = n;
+								break;
+							}
+						}
+
+						invalidateEntry(uid, TTL, hash, neighbor, serverConn.port);
+					}
+				}
+
+				UIDs.erase(uid); // Potential to run query again? clear at a later time?
+				return invalidated.size() > 0;
+					  });
 
 			srv->bind(k_Search, [&](uid_t uid, int32_t TTL, string query, unsigned short _port) -> EntryResults {
 				Log.d("Indexer", "Request Search %d", TTL);
@@ -372,6 +446,12 @@ namespace Index {
 		if (isServer)
 			return false;
 		return clt->call(k_Deregister, id, peerConn, hash).as<bool>();
+	}
+
+	bool Indexer::invalidate(entryHash_t hash) {
+		if (isServer)
+			return false;
+		return clt->call(k_Invalidate, nextUID(), -1, hash, peerConn.port).as<bool>();
 	}
 
 	uid_t Indexer::nextUID() { // https://stackoverflow.com/questions/19195183/how-to-properly-hash-the-custom-struct

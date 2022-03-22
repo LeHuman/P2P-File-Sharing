@@ -28,8 +28,7 @@ namespace Index {
 	using std::unordered_map;
 
 	using entryHash_t = std::string;
-	typedef struct conn_t conn_t;
-	struct Peer;
+		struct Peer;
 
 	/**
 	 * @brief struct conn_t represents connection info that is passed between client/server to represent connections
@@ -38,7 +37,7 @@ namespace Index {
 		string ip;
 		uint16_t port = 0;
 
-		bool operator==(struct conn_t &other) {
+		bool operator==(const struct conn_t &other) {
 			return this->port == other.port && this->ip == other.ip;
 		}
 
@@ -47,6 +46,31 @@ namespace Index {
 		}
 
 		MSGPACK_DEFINE_ARRAY(ip, port);
+	};
+
+	/**
+	 * @brief Information related to an origin server (leaf node)
+	*/
+	struct origin_t {
+		int peerID = -1; // ID of the origin server
+		conn_t conn; // Connection info for origin server
+		bool master = false; // Whether this originated from the origin server
+		size_t version = 0; // Version counter
+
+		MSGPACK_DEFINE_ARRAY(peerID, conn, master, version);
+
+		bool operator==(const struct origin_t &rhs) {
+			return this->version == rhs.version && this->peerID == rhs.peerID && this->conn == rhs.conn;
+		}
+
+		bool matchesPeer(const Peer *peer) {
+			return peer->connInfo == conn && peer->id == peerID;
+		}
+
+		origin_t(int peerID, conn_t conn, size_t version) : peerID { peerID }, conn { conn }, version { version } {
+		}
+		origin_t(Peer &peer, size_t version) : peerID { peer.id }, conn { peer.connInfo }, version { version } {
+		}
 	};
 
 	/**
@@ -85,25 +109,28 @@ namespace Index {
 		bool valid() {
 			return isValid;
 		}
-	};
+	}; 
 
 	/**
-	 * @brief Entry represents a file entry in the database, also refrences Peers that have this file available
+	 * @brief Entry represents a file entry in the database, also references Peers that have this file available
 	*/
 	struct Entry : public Referer<Peer> {
 		entryHash_t hash;
 		string name;
+		origin_t origin;
+		time_t TTR = -1; // Time to refresh, -1 means no invalidating,
 
 		/**
 		 * @brief Entry::searchEntry is used to pass information over RPC, related to entries
 		*/
 		struct searchEntry {
-			string hash;
+			entryHash_t hash;
 			string name;
+			origin_t origin;
 			size_t peers = 0;
 			time_t firstIndexed = 0;
 
-			MSGPACK_DEFINE_ARRAY(hash, name, peers, firstIndexed);
+			MSGPACK_DEFINE_ARRAY(hash, name, origin, peers, firstIndexed);
 
 			string firstIndexedString();
 			string str();
@@ -113,26 +140,56 @@ namespace Index {
 			}
 
 			searchEntry &operator+=(const searchEntry &rhs) {
-				//if (this->operator==(rhs)) {
-				peers += rhs.peers;
-				if (rhs.firstIndexed < firstIndexed && rhs.firstIndexed > 0) {
-					firstIndexed = rhs.firstIndexed;
-				}
-				/*} else {
+				// this->operator==(rhs) && 
+				if (this->origin == rhs.origin) {
+					peers += rhs.peers;
+					if (rhs.firstIndexed < firstIndexed && rhs.firstIndexed > 0) {
+						firstIndexed = rhs.firstIndexed;
+					}
+				} else {
 					Log.e("searchEntry", "Attempted to concatenate two different search entries: %s:%s %s:%s", name, hash, rhs.name, rhs.hash);
-				}*/
+					// TODO: invalidate file?
+				}
 				return *this;
 			}
 		};
 
 		/**
-		 * @brief Create a new Entry struct
+		 * @brief Create a new Entry struct from the origin server
 		 * @param name Name of this file entry
-		 * @param hash the hash of this file entry
+		 * @param hash The hash of this file entry
+		 * @param peer The origin server peer struct
+		 * @param version Version number of this file. defaults to 0
 		 * @note this is should only be used internally
 		*/
-		Entry(string name, entryHash_t hash) : name { name }, hash { hash } {
+		Entry(string name, entryHash_t hash, Peer &peer, size_t version = 0) : name { name }, hash { hash } {
 			isValid = true;
+			origin = origin_t(peer, version);
+		}
+
+		/**
+		 * @brief Create a new Entry struct
+		 * @param name Name of this file entry
+		 * @param hash The hash of this file entry
+		 * @param origin The origin server information
+		 * @note this is should only be used internally
+		*/
+		Entry(string name, entryHash_t hash, origin_t origin) : name { name }, hash { hash }, origin { origin } {
+			isValid = true;
+			origin.master = false; // set to false, as origin was not made using other constructor
+		}
+
+		//void update(string name, entryHash_t hash) {
+		//	this->name = name;
+		//	this->hash = hash;
+		//}
+
+		void invalidate() {
+			TTR = 0; // force update
+		}
+
+		bool invalidated() {
+			return TTR != -1 && TTR > std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 		}
 
 		bool operator==(const Entry &other) const {
@@ -210,7 +267,15 @@ namespace Index {
 		 *
 		 * @return If registering of the file was successful
 		*/
-		bool registry(int id, conn_t connection, string entryName, entryHash_t hash);
+		bool registry(int id, conn_t connection, string entryName, entryHash_t hash);		
+
+		/**
+		 * @brief Invalidate an existing file on the database
+		 * @param hash hash of the file
+		 *
+		 * @return Peers that have the invalid entry
+		*/
+		unordered_set<Index::Peer> invalidate(entryHash_t hash);
 
 		/**
 		 * @brief Deregister a file from the database

@@ -35,7 +35,16 @@ void Peer::deregisterFile(Index::Indexer &indexer, Index::entryHash_t hash) {
 	}
 }
 
-void Peer::listener(Util::File file, Util::File::Status status) { // TODO: not thread safe, peers can potentially connect with outdated info between calls
+void Peer::invalidateFile(Index::Indexer &indexer, Index::entryHash_t hash) {
+	bool invalidated = indexer.invalidate(hash);
+	if (invalidated) {
+		Log.i(_ID, "Invalidated hash: %s", hash.data());
+	} else {
+		Log.e(_ID, "Unable to invalidate hash: %s", hash.data());
+	}
+}
+
+void Peer::originFolderListener(Util::File file, Util::File::Status status) { // TODO: not thread safe, peers can potentially connect with outdated info between calls
 	if (!std::filesystem::is_regular_file(std::filesystem::path(file.path)) && status != Util::File::Status::erased) {
 		return;
 	}
@@ -50,6 +59,7 @@ void Peer::listener(Util::File file, Util::File::Status status) { // TODO: not t
 			deregisterFile(*indexer, file.hash);
 			break;
 		case Util::File::Status::modified:
+			invalidateFile(*indexer, file.hash);
 			deregisterFile(*indexer, file.prehash);
 			exchanger->updateLocalFile(file);
 			registerFile(*indexer, file.path.filename().string(), file.hash);
@@ -84,7 +94,7 @@ void Peer::start() {
 	indexer = new Index::Indexer(id, listeningPort, indexingIP, indexingPort);
 	indexer->start();
 	exchanger = new Exchanger::Exchanger(id, listeningPort, downloadPath);
-	folderWatcher = new Util::Folder(downloadPath, [&](Util::File file, Util::File::Status status) {listener(file, status); });
+	folderWatcher = new Util::Folder(downloadPath, [&](Util::File file, Util::File::Status status) {originFolderListener(file, status); });
 }
 
 void Peer::stop() {

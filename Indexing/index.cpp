@@ -59,6 +59,39 @@ namespace Index {
 		return ss.str();
 	}
 
+	unordered_set<Index::Peer> Database::invalidate(entryHash_t hash) {
+		mutex.lock();
+		unordered_map<entryHash_t, Entry *>::const_iterator gotE = entries.find(hash);
+
+		Entry *e = NULL;
+
+		unordered_set<Index::Peer> relatedPeers;
+
+		if (gotE == entries.end()) {
+			Log.w("Invalidate", "Entry not found: %s", hash.data());
+		} else {
+			e = entries[hash];
+		}
+
+		if (e == NULL || !e->valid()) {
+			Log.e("Invalidate", "Entry was not found or is invalid\n\thash: %s", hash.data());
+			mutex.unlock();
+			return relatedPeers;
+		}
+
+		e->invalidate();
+
+		for (Index::Peer* peer: e->refrences) {
+			relatedPeers.insert(*peer);
+		}
+
+		mutex.unlock();
+
+		Log("Invalidate", "Invalidate\n\name: %s%s\n\hash: %s\n", e->name.data(), hash.data());
+
+		return relatedPeers;
+	}
+
 	bool Database::registry(int id, conn_t connection, string entryName, entryHash_t hash) {
 		mutex.lock();
 
@@ -67,22 +100,23 @@ namespace Index {
 
 		bool nameExists = false;
 
+		if (gotP == peers.end()) {
+			peers[id] = new Peer(id, connection);
+		}
+		Peer *p = peers[id];
+
+		// TODO: first check if hash has an origin server already
+
 		if (gotE == entries.end()) {
-			entries[hash] = new Entry(entryName, hash);
+			entries[hash] = new Entry(entryName, hash, *p); // remove dereference?
 		} else if (gotE->second->name != entryName) {
 			Log.w("Registry", "Entry hash already exists, using indexed entry name");
 			nameExists = true;
 		}
-
-		if (gotP == peers.end()) {
-			peers[id] = new Peer(id, connection);
-		}
-
 		Entry *e = entries[hash];
-		Peer *p = peers[id];
-
+		
 		if (!e->valid() || !p->valid()) {
-			Log.e("Registry", "Referers invalid before addition\n\tID: %d\n\thash: %s", id, hash.data());
+			Log.e("Registry", "Referrers invalid before addition\n\tID: %d\n\thash: %s", id, hash.data());
 			mutex.unlock();
 			return false;
 		}

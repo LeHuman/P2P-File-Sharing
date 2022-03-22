@@ -37,7 +37,9 @@ class Peer {
 
 	void deregisterFile(Index::Indexer &indexer, Index::entryHash_t hash);
 
-	void listener(Util::File file, Util::File::Status status);
+	void invalidateFile(Index::Indexer &indexer, Index::entryHash_t hash);
+
+	void originFolderListener(Util::File file, Util::File::Status status);
 
 public:
 	~Peer();

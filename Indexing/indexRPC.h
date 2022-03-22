@@ -36,6 +36,7 @@ namespace Index {
 
 	const string k_Register = "register";
 	const string k_Deregister = "deregister";
+	const string k_Invalidate = "invalidate";
 	const string k_Search = "search";
 	const string k_List = "list";
 	const string k_Request = "request";
@@ -49,11 +50,13 @@ namespace Index {
 		rpc::server *srv = nullptr;
 		Index::Database *database = nullptr;
 		unordered_set<uid_t> UIDs;
-		vector<conn_t> neighbors; // TODO: populate with config file
+		vector<conn_t> neighbors;
 		conn_t serverConn;
 		conn_t peerConn;
 		bool isServer = false;
 		bool all2all = false;
+		bool pulling = false; // Enable pull mode for consistency checking
+		bool pushing = false; // Enable push mode for consistency checking
 		int32_t _TTL = 0;
 		int id = -1;
 		std::mutex uidMux;
@@ -134,6 +137,13 @@ namespace Index {
 		 * @return Sucessfully deregistered
 		*/
 		bool deregister(entryHash_t hash);
+
+		/**
+		 * @brief Invalidate a existing file on index server
+		 * @param hash The hash of the file
+		 * @return Sucessfully invalidated
+		*/
+		bool invalidate(entryHash_t hash);
 
 		/**
 		 * @brief Search index server for files that contain query
