@@ -120,14 +120,13 @@ namespace Index {
 
 		if (origin.master) {
 			if (origins.contains(hash)) {
-				Log.e("Registry", "Origin file already locally exists\n\tID: %d\n\thash: %s", id, hash.data());
-				mutex.unlock();
-				return false;
+				Log.w("Registry", "Origin file already locally exists\n\tID: %d\n\thash: %s", id, hash.data());
+			} else {
+				Log.i("Registry", "New Origin\n\tID: %d\n\tname: %s\n\thash: %s\n", id, entryName.c_str(), hash.data());
+				origins[hash] = new Entry(entryName, hash, origin);
+				origins[hash]->add(p);
+				origins[hash]->origin.master = true;
 			}
-			Log.i("Registry", "New Origin\n\tID: %d\n\tname: %s\n\thash: %s\n", id, entryName.c_str(), hash.data());
-			origins[hash] = new Entry(entryName, hash, origin);
-			origins[hash]->add(p);
-			origins[hash]->origin.master = true;
 		}
 
 		if (gotE == remotes.end()) {
@@ -287,13 +286,14 @@ namespace Index {
 				Entry::searchEntry &r = *mit;
 				if (o.name == r.name) {
 					if (o.hash == r.hash) { // TODO: match version number?
-						results.push_back(r);
+						o += r;
 					}
 					mit = remotes.erase(mit);
 				} else {
 					mit++;
 				}
 			}
+			results.push_back(o);
 		}
 		if (leftovers) {
 			results.insert(results.end(), remotes.begin(), remotes.end());
