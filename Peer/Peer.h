@@ -4,9 +4,9 @@
  * @brief Class that deals with everything a peer needs
  * @version 0.1
  * @date 2022-02-20
- * 
+ *
  * @copyright Copyright (c) 2022
- * 
+ *
  */
 
 #pragma once
@@ -16,30 +16,40 @@
 #include "Log.h"
 #include "indexRPC.h"
 #include "Console.h"
+#include "index.h"
 #include "Exchanger.h"
 
-/**
- * @brief Class representing a peer
-*/
+ /**
+  * @brief Class representing a peer
+ */
 class Peer {
 	uint32_t id;
 	uint16_t listeningPort;
 	std::string indexingIP;
 	uint16_t indexingPort;
-	std::string downloadPath;
+	std::string uploadPath, downloadPath;
+	bool pulling = false; // Enable pull mode for consistency checking
+	bool pushing = false; // Enable push mode for consistency checking
 
-	Util::Folder *folderWatcher = nullptr;
+	Util::Folder *originWatcher = nullptr;
+	Util::Folder *remoteWatcher = nullptr;
 	Index::Indexer *indexer = nullptr;
 	Exchanger::Exchanger *exchanger = nullptr;
 	Console::Console _console;
 
-	void registerFile(Index::Indexer &indexer, std::string fileName, Index::entryHash_t hash);
+	void registerFile(std::string fileName, Index::entryHash_t hash, Index::origin_t origin);
 
-	void deregisterFile(Index::Indexer &indexer, Index::entryHash_t hash);
+	void deregisterFile(Index::entryHash_t hash, bool master = false);
 
-	void invalidateFile(Index::Indexer &indexer, Index::entryHash_t hash);
+	void invalidateFile(Index::entryHash_t hash);
 
 	void originFolderListener(Util::File file, Util::File::Status status);
+
+	void remoteFolderListener(Util::File file, Util::File::Status status);
+
+	void invalidationListener(Util::File file);
+
+	void downloadListener(Util::File file, Index::origin_t origin);
 
 public:
 	~Peer();
@@ -50,9 +60,10 @@ public:
 	 * @param listeningPort The external port other peers should connect to
 	 * @param indexingIP The IP address of the indexing server
 	 * @param indexingPort The port of the indexing server
-	 * @param downloadPath The path to the folder to download and update to.
+	 * @param uploadPath The path to the folder to upload from.
+	 * @param downloadPath The path to the folder to download to.
 	*/
-	Peer(uint32_t id, uint16_t listeningPort, std::string indexingIP, uint16_t indexingPort, std::string downloadPath);
+	Peer(uint32_t id, uint16_t listeningPort, std::string indexingIP, uint16_t indexingPort, std::string uploadPath, std::string downloadPath, bool pushing, bool pulling);
 
 	/**
 	 * @brief Switch to this Peer's interactive console
