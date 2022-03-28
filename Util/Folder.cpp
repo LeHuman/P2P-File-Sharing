@@ -88,7 +88,7 @@ namespace Util {
 					} else {
 						if (files[path].time != current_file_last_write_time) {
 							files[path].update(current_file_last_write_time, file.file_size());
-							Log.d("Folder", "File modified: %s", files[path].name.c_str());
+							Log.d("Folder", "File modified: %s : %i", files[path].name.c_str(), files[path].size);
 							listener(files[path], File::Status::modified);
 						}
 					}
