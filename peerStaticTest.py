@@ -15,7 +15,7 @@ def runTest(runs, interject, all2all):
         if i != interject:
             procs.append(subprocess.Popen(["Client.exe", f"-i {i}", "-c test_config.json", "-a" if all2all else ""]))
 
-    # subprocess.Popen(f"wt Client.exe -i {interject}")
+    subprocess.Popen(f"wt Client.exe -i {interject}")
 
     for proc in procs:
         proc.wait()
