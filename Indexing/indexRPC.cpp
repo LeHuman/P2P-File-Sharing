@@ -59,7 +59,7 @@ namespace Index {
 
 	EntryResults searchEntries(uid_t uid, int32_t TTL, string query, conn_t neighbor, unsigned short _port) {
 		try {
-			Log.d("Indexer", "Propagating query %s %llu %u", k_Search.data(), uid, TTL);
+			Log.i("Indexer", "Propagating query %s %llu %u", k_Search.data(), uid, TTL);
 			auto clt = rpc::client(neighbor.ip, neighbor.port);
 			clt.set_timeout(timeout);
 			return clt.call(k_Search, uid, TTL, query, _port).as<EntryResults>();
@@ -71,7 +71,7 @@ namespace Index {
 
 	EntryResults listEntries(uid_t uid, int32_t TTL, conn_t neighbor, unsigned short _port) {
 		try {
-			Log.d("Indexer", "Propagating query %s %llu %u", k_List.data(), uid, TTL);
+			Log.i("Indexer", "Propagating query %s %llu %u", k_List.data(), uid, TTL);
 			auto clt = rpc::client(neighbor.ip, neighbor.port);
 			clt.set_timeout(timeout);
 			return clt.call(k_List, uid, TTL, _port).as<EntryResults>();
@@ -83,7 +83,7 @@ namespace Index {
 
 	PeerResults requestPeers(uid_t uid, int32_t TTL, string hash, conn_t neighbor, unsigned short _port) {
 		try {
-			Log.d("Indexer", "Propagating query %s %llu %u", k_Request.data(), uid, TTL);
+			Log.i("Indexer", "Propagating query %s %llu %u", k_Request.data(), uid, TTL);
 			auto clt = rpc::client(neighbor.ip, neighbor.port);
 			clt.set_timeout(timeout);
 			return clt.call(k_Request, uid, TTL, hash, _port).as<PeerResults>();
@@ -95,7 +95,7 @@ namespace Index {
 
 	void invalidateEntry(uid_t uid, int32_t TTL, string hash, conn_t neighbor, unsigned short _port) {
 		try {
-			Log.d("Indexer", "Propagating query %s %llu %u", k_Invalidate.data(), uid, TTL);
+			Log.i("Indexer", "Propagating query %s %llu %u", k_Invalidate.data(), uid, TTL);
 			auto clt = rpc::client(neighbor.ip, neighbor.port);
 			clt.set_timeout(timeout);
 			clt.call(k_Invalidate, uid, TTL, hash, _port);
@@ -209,6 +209,8 @@ namespace Index {
 						}
 
 						invalidateEntry(uid, TTL, hash, neighbor, serverConn.port);
+					} else {
+						Log.i("Indexer", "TTL finished %llu", uid);
 					}
 				}
 
@@ -275,6 +277,8 @@ namespace Index {
 
 					auto _Ra = searchEntries(uid, TTL, query, neighbor, serverConn.port);
 					combineEntries(R, _Ra);
+				} else {
+					Log.i("Indexer", "TTL finished %llu", uid);
 				}
 
 				if (inital) {
@@ -353,7 +357,7 @@ namespace Index {
 					auto _R = listEntries(uid, TTL, neighbor, serverConn.port);
 					combineEntries(R, _R);
 				} else {
-					Log.d("Indexer", "TTL finished %llu", uid);
+					Log.i("Indexer", "TTL finished %llu", uid);
 				}
 
 				if (inital) {

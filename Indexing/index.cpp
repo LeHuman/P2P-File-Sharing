@@ -407,6 +407,7 @@ namespace Index {
 		if (remotes.contains(hash)) {
 			return remotes[hash]->origin;
 		}
+		Log.e("getOrigin", "Unable to get origin: %s", hash.data());
 		return origin_t();
 	}
 }

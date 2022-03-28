@@ -74,24 +74,21 @@ void Peer::remoteFolderListener(Util::File file, Util::File::Status status) { //
 		return;
 	}
 
-	Index::origin_t origin = indexer->getOrigin(file.prehash);
-	origin.master = false;
+	Index::origin_t origin;
 
-	switch (status) { // TODO: only update exchanger if successfully registered
+	switch (status) {
 		case Util::File::Status::created:
-			//exchanger->addLocalFile(file);
-			//registerFile(file.path.filename().string(), file.hash, origin);
 			break;
 		case Util::File::Status::erased:
 			deregisterFile(file.hash);
 			exchanger->removeLocalFile(file);
 			break;
 		case Util::File::Status::modified:
+			origin = indexer->getOrigin(file.prehash);
+			origin.master = false;
 			deregisterFile(file.prehash);
 			exchanger->updateLocalFile(file);
 			registerFile(file.path.filename().string(), file.hash, origin);
-			//Log.e(_ID, "Remote files cannot be modified, removing: %s", file.path.filename().string().data());
-			// TODO: remove file
 			break;
 		default:
 			Log.e(_ID, "Unknown file status: %s", file.path.filename().string().data());
