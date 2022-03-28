@@ -34,7 +34,7 @@ namespace Index {
 			delete clt;
 	}
 
-	Indexer::Indexer(uint16_t sPort, int32_t totalSupers, bool all2all) : all2all { all2all } {
+	Indexer::Indexer(uint16_t sPort, int32_t totalSupers, bool pushing, bool pulling, bool all2all) : pushing { pushing }, pulling { pulling }, all2all { all2all }	{
 		_TTL = totalSupers;
 		srv = new rpc::server(sPort);
 		database = new Database();
@@ -44,7 +44,7 @@ namespace Index {
 		bindFunctions();
 	}
 
-	Indexer::Indexer(int id, uint16_t cPort, string sIP, uint16_t sPort) {
+	Indexer::Indexer(int id, uint16_t cPort, string sIP, uint16_t sPort, bool pushing, bool pulling) : pushing { pushing }, pulling { pulling } {
 		this->id = id;
 		peerConn.ip = "127.0.0.1"; // Modified when connected to an indexing server
 		peerConn.port = cPort;
@@ -52,6 +52,10 @@ namespace Index {
 		serverConn.port = sPort;
 		isServer = false;
 	}
+
+	conn_t Indexer::getPeerConn() {
+		return peerConn;
+	};
 
 	EntryResults searchEntries(uid_t uid, int32_t TTL, string query, conn_t neighbor, unsigned short _port) {
 		try {
@@ -62,6 +66,7 @@ namespace Index {
 		} catch (const std::exception &e) {
 			Log.w("Indexer", "Neighbor error: %s:%u %s", neighbor.ip.data(), neighbor.port, e.what());
 		}
+		return EntryResults();
 	}
 
 	EntryResults listEntries(uid_t uid, int32_t TTL, conn_t neighbor, unsigned short _port) {
@@ -73,6 +78,7 @@ namespace Index {
 		} catch (const std::exception &e) {
 			Log.w("Indexer", "Neighbor error: %s", e.what());
 		}
+		return EntryResults();
 	}
 
 	PeerResults requestPeers(uid_t uid, int32_t TTL, string hash, conn_t neighbor, unsigned short _port) {
@@ -84,6 +90,7 @@ namespace Index {
 		} catch (const std::exception &e) {
 			Log.w("Indexer", "Neighbor error: %s", e.what());
 		}
+		return PeerResults();
 	}
 
 	void invalidateEntry(uid_t uid, int32_t TTL, string hash, conn_t neighbor, unsigned short _port) {
@@ -104,7 +111,7 @@ namespace Index {
 			bool found = false;
 			for (Entry::searchEntry &ls : R) {
 				if (ls == rs) {
-					ls += rs; // TODO: time stamp is possibly wrong, due to race condition
+					ls += rs; // TODO: time stamp is possibly wrong, due to race condition, not critical
 					found = true;
 					break; // There should at most be one exact duplicate per entry
 				}
@@ -117,21 +124,37 @@ namespace Index {
 		R.insert(R.begin(), _Ra.begin(), _Ra.end());
 	}
 
+	void splitResults(EntryResults &R, EntryResults &M) {
+		EntryResults::iterator mit;
+
+		for (mit = R.begin(); mit != R.end(); ) {
+			Entry::searchEntry &r = *mit;
+			if (r.origin.master) {
+				M.push_back(r);
+				mit = R.erase(mit);
+			} else {
+				mit++;
+			}
+		}
+	}
+
 	void Indexer::bindFunctions() {
 		if (isServer) {
-			srv->bind(k_Register, [&](int id, conn_t connection, string entryName, entryHash_t hash) -> bool {
+			srv->bind(k_Register, [&](int id, conn_t connection, string entryName, entryHash_t hash, Index::origin_t origin) -> bool { // TODO: if master, check connection info matches
 				connection.ip = rpc::this_session().remoteAddr;
-				return database->registry(id, connection, entryName, hash);
+				return database->registry(id, connection, entryName, hash, origin);
 					  });
-			srv->bind(k_Deregister, [&](int id, conn_t connection, entryHash_t hash) -> bool {
+			srv->bind(k_Deregister, [&](int id, conn_t connection, entryHash_t hash, bool master) -> bool { // TODO: if master, check connection info matches
 				connection.ip = rpc::this_session().remoteAddr;
-				return database->deregister(id, connection, hash); });
+				return database->deregister(id, connection, hash, master); });
+			srv->bind(k_GetOrigin, [&](entryHash_t hash) -> Index::origin_t {
+				return database->getOrigin(hash); });
 			srv->bind(k_Ping, [&]() {return true; });
 
 			// Propagated requests
 
 			srv->bind(k_Invalidate, [&](uid_t uid, int32_t TTL, entryHash_t hash, unsigned short _port) -> bool {
-				Log.d("Indexer", "Request Update %d", TTL);
+				Log.d("Indexer", "Request Invalidation %d", TTL);
 				uidMux.lock();
 				if (UIDs.contains(uid)) {
 					uidMux.unlock();
@@ -140,11 +163,12 @@ namespace Index {
 					return false;
 				}
 				UIDs.insert(uid);
+				uidMux.unlock();
 
 				unordered_set<Peer> invalidated = database->invalidate(hash); // TODO: inform other leaf nodes here, _port initially is the port of the peer making the invalidation request
 
 				if (pushing) {
-
+					Log.i("Indexer", "Pushing invalidation: %s", hash.data());
 					for (const Peer &peer : invalidated) {
 						Exchanger::fileInvalidate(peer, hash);
 					}
@@ -249,8 +273,15 @@ namespace Index {
 					combineEntries(R, _Ra);
 				}
 
+				EntryResults M;
+				splitResults(R, M);
+				EntryResults F;
+				Index::combineResults(M, R, F, false);
+				F.insert(F.end(), M.begin(), M.end());
+
+				Log.d("Indexer", "Returning results");
 				UIDs.erase(uid); // Potential to run query again? clear at a later time?
-				return R;
+				return F;
 					  });
 
 			srv->bind(k_List, [&](uid_t uid, int32_t TTL, unsigned short _port) -> EntryResults {
@@ -265,7 +296,9 @@ namespace Index {
 				UIDs.insert(uid);
 				uidMux.unlock();
 
-				auto R = database->list();
+				bool inital = false;
+
+				EntryResults R = database->list();
 
 				if (TTL == -1) { // -1 means an actual peer is making the request, initialize to total super peers
 					if (all2all) {
@@ -290,6 +323,8 @@ namespace Index {
 					} else {
 						TTL = _TTL;
 					}
+
+					inital = true;
 				}
 
 				TTL--;
@@ -313,8 +348,17 @@ namespace Index {
 					Log.d("Indexer", "TTL finished %llu", uid);
 				}
 
-				UIDs.erase(uid); // Potential to run query again? clear at a later time?
+				if (inital) {
+					EntryResults M;
+					splitResults(R, M);
+					EntryResults F;
+					Index::combineResults(M, R, F, false);
+					F.insert(F.end(), M.begin(), M.end());
+					R = F;
+				}
+
 				Log.d("Indexer", "Returning results");
+				UIDs.erase(uid); // Potential to run query again? clear at a later time?
 				return R;
 					  });
 
@@ -436,22 +480,34 @@ namespace Index {
 		return clt->get_connection_state() == rpc::client::connection_state::connected;
 	}
 
-	bool Indexer::registry(string entryName, entryHash_t hash) {
-		if (isServer)
-			return false;
-		return clt->call(k_Register, id, peerConn, entryName, hash).as<bool>();
+	Index::origin_t Indexer::getOrigin(entryHash_t hash) {
+		if (isServer) {
+			return database->getOrigin(hash);
+		}
+		return clt->call(k_GetOrigin, hash).as<Index::origin_t>();
 	}
 
-	bool Indexer::deregister(entryHash_t hash) {
+	bool Indexer::registry(string entryName, entryHash_t hash, Index::origin_t origin) {
 		if (isServer)
 			return false;
-		return clt->call(k_Deregister, id, peerConn, hash).as<bool>();
+		return clt->call(k_Register, id, peerConn, entryName, hash, origin).as<bool>();
+	}
+
+	bool Indexer::deregister(entryHash_t hash, bool master) {
+		if (isServer)
+			return false;
+		return clt->call(k_Deregister, id, peerConn, hash, master).as<bool>();
 	}
 
 	bool Indexer::invalidate(entryHash_t hash) {
 		if (isServer)
 			return false;
-		return clt->call(k_Invalidate, nextUID(), -1, hash, peerConn.port).as<bool>();
+		try {
+			return clt->call(k_Invalidate, nextUID(), -1, hash, peerConn.port).as<bool>();
+		} catch (const std::exception &e) {
+			Log.e("Invalidate", "Error running query: %s", e.what());
+		}
+		return false;
 	}
 
 	uid_t Indexer::nextUID() { // https://stackoverflow.com/questions/19195183/how-to-properly-hash-the-custom-struct

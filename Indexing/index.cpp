@@ -4,9 +4,9 @@
  * @brief Source code for the Index module
  * @version 0.1
  * @date 2022-02-20
- * 
+ *
  * @copyright Copyright (c) 2022
- * 
+ *
  */
 
 #include <algorithm>
@@ -39,6 +39,10 @@ namespace Index {
 		return bt;
 	}
 
+	origin_t::origin_t(int peerID, conn_t conn, size_t version, bool master) : peerID { peerID }, conn { conn }, version { version }, master { master } {}
+	origin_t::origin_t(Peer *peer, size_t version) : peerID { peer->id }, conn { peer->connInfo }, version { version } {
+	}
+
 	string Entry::searchEntry::firstIndexedString() {
 		static char buf[256];
 		struct std::tm tm = localtime_xp(firstIndexed);
@@ -59,18 +63,18 @@ namespace Index {
 		return ss.str();
 	}
 
-	unordered_set<Index::Peer> Database::invalidate(entryHash_t hash) {
+	unordered_set<Peer> Database::invalidate(entryHash_t hash) {
 		mutex.lock();
-		unordered_map<entryHash_t, Entry *>::const_iterator gotE = entries.find(hash);
+		unordered_map<entryHash_t, Entry *>::const_iterator gotE = remotes.find(hash);
 
 		Entry *e = NULL;
 
-		unordered_set<Index::Peer> relatedPeers;
+		unordered_set<Peer> relatedPeers;
 
-		if (gotE == entries.end()) {
+		if (gotE == remotes.end()) {
 			Log.w("Invalidate", "Entry not found: %s", hash.data());
 		} else {
-			e = entries[hash];
+			e = remotes[hash];
 		}
 
 		if (e == NULL || !e->valid()) {
@@ -81,21 +85,30 @@ namespace Index {
 
 		e->invalidate();
 
-		for (Index::Peer* peer: e->refrences) {
-			relatedPeers.insert(*peer);
+		Peer *M = nullptr;
+
+		if (origins.contains(hash)) {
+			origins[hash]->invalidate();
+			M = *begin(origins[hash]->refrences);
+		}
+
+		for (Index::Peer *peer : e->refrences) {
+			if (M == nullptr || M->id != peer->id) {
+				relatedPeers.insert(*peer);
+			}
 		}
 
 		mutex.unlock();
 
-		Log("Invalidate", "Invalidate\n\name: %s%s\n\hash: %s\n", e->name.data(), hash.data());
+		Log("Invalidate", "Invalidate\n\tname: %s\n\thash: %s\n", e->name.data(), hash.data());
 
 		return relatedPeers;
 	}
 
-	bool Database::registry(int id, conn_t connection, string entryName, entryHash_t hash) {
+	bool Database::registry(int id, conn_t connection, string entryName, entryHash_t hash, origin_t origin) {
 		mutex.lock();
 
-		unordered_map<entryHash_t, Entry *>::const_iterator gotE = entries.find(hash); // TODO: remove need for mutex here by ensuring matching registry call is not being run
+		unordered_map<entryHash_t, Entry *>::const_iterator gotE = remotes.find(hash); // TODO: remove need for mutex here by ensuring matching registry call is not being run
 		unordered_map<int, Peer *>::const_iterator gotP = peers.find(id);
 
 		bool nameExists = false;
@@ -105,16 +118,26 @@ namespace Index {
 		}
 		Peer *p = peers[id];
 
-		// TODO: first check if hash has an origin server already
+		if (origin.master) {
+			if (origins.contains(hash)) {
+				Log.e("Registry", "Origin file already locally exists\n\tID: %d\n\thash: %s", id, hash.data());
+				mutex.unlock();
+				return false;
+			}
+			Log.i("Registry", "New Origin\n\tID: %d\n\tname: %s\n\thash: %s\n", id, entryName.c_str(), hash.data());
+			origins[hash] = new Entry(entryName, hash, origin);
+			origins[hash]->add(p);
+			origins[hash]->origin.master = true;
+		}
 
-		if (gotE == entries.end()) {
-			entries[hash] = new Entry(entryName, hash, *p); // remove dereference?
+		if (gotE == remotes.end()) {
+			remotes[hash] = new Entry(entryName, hash, origin);
 		} else if (gotE->second->name != entryName) {
 			Log.w("Registry", "Entry hash already exists, using indexed entry name");
 			nameExists = true;
 		}
-		Entry *e = entries[hash];
-		
+		Entry *e = remotes[hash];
+
 		if (!e->valid() || !p->valid()) {
 			Log.e("Registry", "Referrers invalid before addition\n\tID: %d\n\thash: %s", id, hash.data());
 			mutex.unlock();
@@ -154,19 +177,30 @@ namespace Index {
 		return true;
 	}
 
-	bool Database::deregister(int id, conn_t connection, entryHash_t hash) {
+	bool Database::deregister(int id, conn_t connection, entryHash_t hash, bool master) {
 		mutex.lock();
 
-		unordered_map<entryHash_t, Entry *>::const_iterator gotE = entries.find(hash);
+		unordered_map<entryHash_t, Entry *>::const_iterator gotE = remotes.find(hash);
 		unordered_map<int, Peer *>::const_iterator gotP = peers.find(id);
+
+		if (master) {
+			if (!origins.contains(hash)) {
+				Log.e("Registry", "Origin file does not exist\n\tID: %d\n\thash: %s", id, hash.data());
+			} else {
+				Entry *e = origins[hash];
+				origins.erase(hash);
+				delete e;
+				// TODO: propagate deletion?
+			}
+		}
 
 		Entry *e = NULL;
 		Peer *p = NULL;
 
-		if (gotE == entries.end()) {
+		if (gotE == remotes.end()) {
 			Log.w("Deregister", "Entry not found: %s", hash.data());
 		} else {
-			e = entries[hash];
+			e = remotes[hash];
 		}
 
 		if (gotP == peers.end()) {
@@ -209,7 +243,7 @@ namespace Index {
 
 		if (!e->valid()) {
 			//e->mutex.lock();
-			entries.erase(e->hash);
+			remotes.erase(e->hash);
 			Log("Deregister", "Erase entry\n\tname: %s\n\thash: %s", saveName.c_str(), hash.data());
 			delete e;
 		}
@@ -245,47 +279,98 @@ namespace Index {
 		return removed == 0;
 	}
 
+	void combineResults(EntryResults &origins, EntryResults &remotes, EntryResults &results, bool leftovers) {
+		for (Entry::searchEntry &o : origins) {
+			EntryResults::iterator mit;
+
+			for (mit = remotes.begin(); mit != remotes.end(); ) {
+				Entry::searchEntry &r = *mit;
+				if (o.name == r.name) {
+					if (o.hash == r.hash) { // TODO: match version number?
+						results.push_back(r);
+					}
+					mit = remotes.erase(mit);
+				} else {
+					mit++;
+				}
+			}
+		}
+		if (leftovers) {
+			results.insert(results.end(), remotes.begin(), remotes.end());
+		}
+	}
+
 	EntryResults Database::list() {
 		EntryResults results;
+		EntryResults _origins;
+		EntryResults _remotes;
 
 		Log("List", "Listing all files entries");
 
 		mutex.lock(); // TODO: lock individual Entry mutex instead, must consider entry being deleted
-		for (pair<entryHash_t, Entry *> entry : entries) {
-			string name = entry.second->name;
-			string hash = entry.second->hash;
-			results.emplace_back(hash, name, entry.second->refrenceCount(), entry.second->firstIndexed);
+		for (pair<entryHash_t, Entry *> entry : remotes) {
+			Entry *val = entry.second;
+			_remotes.emplace_back(val->hash, val->name, val->origin, val->refrenceCount(), val->firstIndexed);
+		}
+		for (pair<entryHash_t, Entry *> entry : origins) {
+			Entry *val = entry.second;
+			_origins.emplace_back(val->hash, val->name, val->origin, val->refrenceCount(), val->firstIndexed);
 		}
 		mutex.unlock();
+
+		if (_remotes.empty()) {
+			Log.w("List", "Query resulted empty");
+			return results;
+		}
+
+		combineResults(_origins, _remotes, results);
 
 		return results;
 	}
 
+	void toLower(std::string &str) {
+		std::transform(str.begin(), str.end(), str.begin(), [](unsigned char c) { return (char)std::tolower(c); });
+	}
+
 	EntryResults Database::search(string query) {
 		EntryResults results;
+		EntryResults _origins;
+		EntryResults _remotes;
 
 		Log("Search", "Searching for query: %s", query.data());
 
 		string search_v(query);
 
-		std::transform(search_v.begin(), search_v.end(), search_v.begin(), [](unsigned char c) { return (char)std::tolower(c); });
+		toLower(search_v);
 
 		mutex.lock();
-		for (pair<entryHash_t, Entry *> entry : entries) {
+		for (pair<entryHash_t, Entry *> entry : remotes) {
 			string lowerName(entry.second->name);
-			std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), [](unsigned char c) { return (char)std::tolower(c); });
+			toLower(lowerName);
 
 			if (lowerName.find(search_v) != string::npos) {
-				string name = entry.second->name;
-				string hash = entry.second->hash;
-				results.emplace_back(hash, name, entry.second->refrenceCount(), entry.second->firstIndexed);
+				Entry *val = entry.second;
+				_remotes.emplace_back(val->hash, val->name, val->origin, val->refrenceCount(), val->firstIndexed);
+			}
+		}
+
+		for (pair<entryHash_t, Entry *> entry : origins) {
+			string lowerName(entry.second->name);
+			toLower(lowerName);
+
+			if (lowerName.find(search_v) != string::npos) {
+				Entry *val = entry.second;
+				_origins.emplace_back(val->hash, val->name, val->origin, val->refrenceCount(), val->firstIndexed);
 			}
 		}
 		mutex.unlock();
 
-		if (results.empty()) {
+		if (_remotes.empty()) {
 			Log.w("Search", "Query resulted empty: %s", query.data());
+			return results;
 		}
+
+		combineResults(_origins, _remotes, results);
 
 		return results;
 	}
@@ -296,9 +381,9 @@ namespace Index {
 		Log("Request", "Searching for hash: %s", hash.data());
 
 		mutex.lock();
-		unordered_map<entryHash_t, Entry *>::const_iterator got = entries.find(hash);
+		unordered_map<entryHash_t, Entry *>::const_iterator got = remotes.find(hash);
 
-		if (got == entries.end()) {
+		if (got == remotes.end()) {
 			mutex.unlock();
 			results.fileName = "";
 			Log.w("Request", "No entries found with hash: %s", hash.data());
@@ -313,5 +398,15 @@ namespace Index {
 		}
 
 		return results;
+	}
+
+	origin_t Database::getOrigin(entryHash_t hash) {
+		if (origins.contains(hash)) {
+			return origins[hash]->origin;
+		}
+		if (remotes.contains(hash)) {
+			return remotes[hash]->origin;
+		}
+		return origin_t();
 	}
 }

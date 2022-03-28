@@ -64,6 +64,9 @@ namespace Exchanger {
 			Log.d(iID, "Connecting to peer: %d", peer.id);
 			tcp::iostream stream(peer.connInfo.ip, std::to_string(peer.connInfo.port));
 			stream.expires_after(std::chrono::seconds(60));
+			Log.d(iID, "Sending mode");
+			char mode = Mode::InvalidateFile;
+			stream.write(&mode, 1);
 			Log.d(iID, "sending hash: %s", hash.data());
 			uint16_t hashLen = hash.size();
 
@@ -87,6 +90,8 @@ namespace Exchanger {
 		std::streamsize written = 1;
 
 		Mode mode;
+		Index::origin_t origin;
+		uint16_t port = 0;
 
 		asio::error_code error;
 		Index::entryHash_t hash;
@@ -96,6 +101,8 @@ namespace Exchanger {
 
 		char sBuf[block_size] = { 0 };
 
+		bool searchWithFileName = false;
+
 		try {
 			while (state != State::Disconnect) {
 				timeout(stream);
@@ -103,13 +110,18 @@ namespace Exchanger {
 					case State::C_Connect:
 						stream.read(&status, 1);
 						switch (status) { // Get connection mode
+							case Mode::P2PFileName:
+								searchWithFileName = true;
+								Log.d(sID, "P2PFileName");
 							case Mode::P2PFile:
 								mode = Mode::P2PFile;
 								state = State::S_Accept;
+								Log.d(sID, "P2PFile");
 								break;
 							case Mode::InvalidateFile:
 								mode = Mode::InvalidateFile;
 								state = State::S_FindFile;
+								Log.d(sID, "InvalidateFile");
 								break;
 							default:
 								Log.e(sID, "Invalid connection mode: %d", status);
@@ -139,14 +151,19 @@ namespace Exchanger {
 						Log.d(sID, "Hash get: %s", hash.data());
 
 						timeout(stream);
-						if ((it = localFiles.find(hash)) != localFiles.end()) { // File exists, open file and send size of file
+
+						if (searchWithFileName) {
+							status = (it = localFileNames.find(hash)) != localFileNames.end();
+						} else {
+							status = (it = localFiles.find(hash)) != localFiles.end();
+						}
+
+						if (status) { // File exists, open file and send size of file
 							file = it->second;
 							if (mode == Mode::InvalidateFile) {
-								if (invalidationListener != nullptr) {
-									stream.close();
-									Log.d(sID, "Invalidating hash: %s", hash.data());
-									invalidationListener(file);
-								}
+								stream.close();
+								Log.d(sID, "Running invalidation listener for hash: %s", hash.data());
+								invalidationListener(file);
 								state = State::Disconnect;
 								break;
 							}
@@ -154,6 +171,19 @@ namespace Exchanger {
 							fileSize = file.size;
 							Log.d(sID, "File found, sending size: %d", fileSize);
 							stream.write((char *)&fileSize, sizeof(uint64_t));
+							origin = originHandler(file);
+
+							timeout(stream);
+
+							id = origin.peerID;
+							port = origin.conn.port;
+							hashLen = origin.conn.ip.size();
+
+							stream.write((char *)&id, sizeof(uint32_t)); // Send id of origin
+							stream.write((char *)&port, sizeof(uint16_t)); // Send port of origin
+							stream.write((char *)&hashLen, sizeof(uint16_t)); // Send length of origin ip string
+							stream.write(origin.conn.ip.data(), hashLen); // Send origin ip string
+
 							state = State::Streaming;
 						} else { // File does not exist, disconnect
 							fileSize = 0;
@@ -206,9 +236,9 @@ namespace Exchanger {
 	/**
 	 * @brief The state machine for the peer that is receiving a file
 	 */
-	bool Exchanger::fileReceiver(tcp::iostream &stream, uint32_t eid, entryHash_t hash, string downloadPath) {
+	bool Exchanger::fileReceiver(tcp::iostream &stream, uint32_t eid, std::string key, string downloadPath, bool usingHash) {
 		State state = State::C_Connect;
-		uint16_t hashLen = hash.size();
+		uint16_t hashLen = key.size();
 		uint64_t fileSize = 0;
 		char status = true;
 		std::streamsize received = 1;
@@ -219,12 +249,22 @@ namespace Exchanger {
 		char sBuf[block_size] = { 0 };
 		uint32_t id = 0;
 
+		Index::origin_t origin;
+		Util::File file;
+		uint16_t port = 0;
+
 		try {
 			while (state != State::Disconnect) {
 				timeout(stream);
 				switch (state) {
 					case State::C_Connect:
-						stream.write(&status, Mode::P2PFile);
+						Log.d(cID, "Sending mode");
+						if (usingHash) {
+							status = Mode::P2PFile;
+						} else {
+							status = Mode::P2PFileName;
+						}
+						stream.write(&status, 1);
 						state = State::C_ConfirmID;
 						timeout(stream);
 						break;
@@ -236,16 +276,30 @@ namespace Exchanger {
 							status = false;
 							state = State::Disconnect;
 						} else {
-							Log.d(cID, "ID match, sending hash: %s", hash.data());
+							Log.d(cID, "ID match, sending hash: %s", key.data());
 							timeout(stream);
 							stream.write((char *)&hashLen, sizeof(uint16_t));
-							stream.write(hash.data(), hash.size());
+							stream.write(key.data(), key.size());
 							state = State::C_AllocSpace;
 						}
 						break;
 					case State::C_AllocSpace:
-						Log.d(cID, "Receiving file size");
-						stream.read((char *)&fileSize, sizeof(uint64_t));
+						Log.d(cID, "Receiving file size and origin");
+						stream.read((char *)&fileSize, sizeof(uint64_t)); // Get filesize
+						stream.read((char *)&id, sizeof(uint32_t)); // Get id of origin
+						stream.read((char *)&port, sizeof(uint16_t)); // Get port of origin
+						stream.read((char *)&hashLen, sizeof(uint16_t)); // Get length of origin ip string
+						if (hashLen >= block_size) { // TODO: remove limit
+							Log.e(sID, "ip size too large: %d", hashLen);
+							status = false;
+							state = State::Disconnect;
+							break;
+						}
+						timeout(stream);
+						stream.read(sBuf, hashLen); // Get origin ip string
+
+						origin = Index::origin_t(id, Index::conn_t(std::string(sBuf), port), 0, false);
+
 						timeout(stream);
 						if (fileSize == 0) { // TODO: Check file size for mistmatch and also allocate file / check for space
 							status = false;
@@ -254,7 +308,9 @@ namespace Exchanger {
 							state = State::Disconnect;
 						} else {
 							fileIn = std::ofstream(downloadPath, std::ios_base::out | std::ios_base::binary);
+							Log.d(cID, "Origin get: %s", origin.str().data());
 							Log.d(cID, "Valid filesize, notifying server: %d", fileSize);
+							status = true;
 							stream.write(&status, 1);
 							state = State::Streaming;
 						}
@@ -267,7 +323,20 @@ namespace Exchanger {
 							received = stream.gcount();
 							fileIn.write(sBuf, received);
 						}
-						Log.i(cID, "Finished streaming");
+						Log.i(cID, "Finished streaming, storing local file");
+						stream.close();
+						fileIn.flush();
+						file = Util::File(downloadPath);
+						if (usingHash && file.hash != key) {
+							Log.e(cID, "Keys do not match, unable to index: %s", key.data());
+							status = false;
+							state = State::Disconnect;
+							break;
+						}
+						addLocalFile(file);
+						Log.d(cID, "Running finished listener for hash: %s", key.data());
+						downloadListener(file, origin);
+						status = true;
 						state = State::Disconnect;
 						break;
 					default:
@@ -295,16 +364,20 @@ namespace Exchanger {
 	 * @brief Threaded function that is constantly running, listening for peers to accept a socket connection to
 	 */
 	void Exchanger::listener(uint32_t id, uint16_t port) {
-		tcp::acceptor acceptor(*io_context, tcp::endpoint(tcp::v4(), port));
+		try {
+			tcp::acceptor acceptor(*io_context, tcp::endpoint(tcp::v4(), port));
 
-		while (true) {
-			tcp::iostream stream;
-			stream.expires_after(std::chrono::seconds(5));
-			acceptor.accept(stream.socket());
+			while (true) {
+				tcp::iostream stream;
+				stream.expires_after(std::chrono::seconds(5));
+				acceptor.accept(stream.socket());
 
-			auto endpnt = stream.socket().remote_endpoint();
-			Log.d(ID, "p2p conn: %s:%d", endpnt.address().to_string().data(), endpnt.port());
-			thread(&Exchanger::fileSender, this, id, std::move(stream)).detach();
+				auto endpnt = stream.socket().remote_endpoint();
+				Log.d(ID, "p2p conn: %s:%d", endpnt.address().to_string().data(), endpnt.port());
+				thread(&Exchanger::fileSender, this, id, std::move(stream)).detach();
+			}
+		} catch (const std::exception &e) {
+			Log.e(ID, "Error listening for requests: %s", e.what());
 		}
 	}
 
@@ -312,12 +385,12 @@ namespace Exchanger {
 	/**
 	 * @brief Given a list of peers, this threaded function will attempt to connect to peers until it downloads a file
 	 */
-	void Exchanger::peerResolver(Index::PeerResults results, Index::entryHash_t hash, string downloadPath) { // TODO: smarter peer selection & chunked file downloading
+	void Exchanger::peerResolver(Index::PeerResults results, std::string key, string downloadPath, bool usingHash) { // TODO: smarter peer selection & chunked file downloading
 		for (Index::Peer::searchEntry &item : results.peers) {
-			Log.d(ID, "Connecting to peer: %d", item.id);
+			Log.d(ID, "Connecting to peer: %d:%s:%i", item.id, item.connInfo.ip.data(), item.connInfo.port);
 			tcp::iostream stream(item.connInfo.ip, std::to_string(item.connInfo.port));
 			stream.expires_after(std::chrono::seconds(60));
-			if (fileReceiver(stream, item.id, hash, downloadPath))
+			if (fileReceiver(stream, item.id, key, downloadPath, usingHash))
 				return;
 		}
 		Log.f(ID, "Failed to request file: %s", downloadPath.data());
@@ -327,17 +400,23 @@ namespace Exchanger {
 	 * @brief Threaded function that is constantly running, waiting for request to download a file
 	 */
 	void Exchanger::receiver() { // TODO: set timeout
-		tcp::resolver resolver(*io_context);
-		while (running) {
-			std::unique_lock<std::mutex> lock(mutex);
-			if (cond.wait_for(lock, std::chrono::milliseconds(50), [&]() {return !queries.empty(); })) {
-				const struct query_t query = queries.front();
-				queries.pop();
+		try {
+			tcp::resolver resolver(*io_context);
 
-				thread(&Exchanger::peerResolver, this, std::move(query.results), query.hash, query.downloadPath).detach();
+			while (running) {
+				std::unique_lock<std::mutex> lock(mutex);
+				if (cond.wait_for(lock, std::chrono::milliseconds(50), [&]() {return !queries.empty(); })) {
+					const struct query_t query = queries.front();
+					queries.pop();
+
+					thread(&Exchanger::peerResolver, this, std::move(query.results), query.key, query.downloadPath, query.usingHash).detach();
+				}
+				std::this_thread::sleep_for(std::chrono::milliseconds(50));
 			}
-			std::this_thread::sleep_for(std::chrono::milliseconds(50));
+		} catch (const std::exception &e) {
+			Log.e(ID, "Error receiving requests: %s", e.what());
 		}
+
 		Log.d(ID, "stopped receiving peer requests");
 		running = true;
 	}
@@ -376,43 +455,44 @@ namespace Exchanger {
 		this->downloadPath = downloadPath;
 	}
 
-	Exchanger::Exchanger(uint32_t id, uint16_t listeningPort, string downloadPath) {
+	Exchanger::Exchanger(uint32_t id, uint16_t listeningPort, string downloadPath, const std::function<void(Util::File, Index::origin_t)> &downloadListener, const std::function<void(Util::File)> &invalidationListener, std::function<Index::origin_t(Util::File)> originHandler) : downloadListener { downloadListener }, invalidationListener { invalidationListener }, originHandler { originHandler } {
 		setDownloadPath(downloadPath);
 		io_context = new asio::io_context(thread::hardware_concurrency());
 		thread(&Exchanger::_startSocket, this, id, listeningPort).detach();
 		Log.d(ID, "Listening to port: %d", listeningPort);
 	}
 
-	bool Exchanger::download(Index::PeerResults results, entryHash_t hash) {
+	bool Exchanger::download(Index::PeerResults results, std::string key, bool usingHash) {
 		std::filesystem::path filePath = downloadPath;
 		filePath /= results.fileName;
 		try {
-			auto localFile = localFiles.find(hash);
-			if (localFile != localFiles.end()) { // TODO: Check if file with same name exists
-				Log.e(ID, "File already exists locally, not downloading: %s", localFile->second.name.data());
-				return false;
-			}
+			if (usingHash) {
+				auto localFile = localFiles.find(key);
+				if (localFile != localFiles.end()) { // TODO: Check if file with same name exists
+					Log.e(ID, "File already exists locally, not downloading: %s", localFile->second.name.data());
+					return false;
+				}
+			} // else ignore if file already exists
 		} catch (const Util::File::not_regular_error &) {
 		}
 		std::lock_guard<std::mutex> lock(mutex);
-		queries.emplace(results, hash, filePath.string()); // TODO: Allow per request download path
+		queries.emplace(results, key, filePath.string(), usingHash); // TODO: Allow per request download path
 		cond.notify_all();
 		return true;
 	}
 
-	void Exchanger::setInvalidationListener(const std::function<void(Util::File)> &listener) {
-		invalidationListener = listener;
-	}
-
 	void Exchanger::addLocalFile(Util::File file) {
 		localFiles.emplace(file.hash, file);
+		localFileNames.emplace(file.name, file); // TODO: make reference, not direct copy
 	}
 
 	void Exchanger::removeLocalFile(Util::File file) {
 		localFiles.erase(file.hash);
+		localFileNames.erase(file.name);
 	}
 
 	void Exchanger::updateLocalFile(Util::File file) {
 		localFiles.emplace(file.hash, file).first->second = file;
+		localFileNames.emplace(file.name, file).first->second = file;
 	}
 }

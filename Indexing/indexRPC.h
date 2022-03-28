@@ -38,6 +38,7 @@ namespace Index {
 	const string k_Deregister = "deregister";
 	const string k_Invalidate = "invalidate";
 	const string k_Search = "search";
+	const string k_GetOrigin = "get_origin";
 	const string k_List = "list";
 	const string k_Request = "request";
 	const string k_Ping = "ping";
@@ -84,7 +85,7 @@ namespace Index {
 		 * @param totalSupers Number of total super peers on the static network, including this one
 		 * @param all2all Enable all2all mode, where queries are propagated to every neighbor at once
 		 */
-		Indexer(uint16_t sPort, int32_t totalSupers, bool all2all = false);
+		Indexer(uint16_t sPort, int32_t totalSupers, bool pushing, bool pulling, bool all2all = false);
 
 		/**
 		 * @brief Create an Indexer Client
@@ -93,7 +94,7 @@ namespace Index {
 		 * @param sIP	The indexing server IP address this client should connect to
 		 * @param sPort The indexing server Port this client should use
 		*/
-		Indexer(int id, uint16_t cPort, string sIP, uint16_t sPort);
+		Indexer(int id, uint16_t cPort, string sIP, uint16_t sPort, bool pushing, bool pulling);
 
 		/**
 		 * @brief Add a neighbor's connection info
@@ -112,6 +113,14 @@ namespace Index {
 		void stop();
 
 		/**
+		 * @brief Get the peer connection info
+		 * @return peer conn info
+		*/
+		conn_t getPeerConn();
+
+		origin_t getOrigin(entryHash_t hash);
+
+		/**
 		 * @brief Client can ping server for delay
 		 * @return delay to get response in microseconds
 		*/
@@ -127,16 +136,18 @@ namespace Index {
 		 * @brief Register file to index server
 		 * @param entryName Name of the file
 		 * @param hash hash of the file
+		 * @param master True if origin server is running command
 		 * @return Sucessfully registered
 		*/
-		bool registry(string entryName, entryHash_t hash);
+		bool registry(string entryName, entryHash_t hash, Index::origin_t origin);
 
 		/**
 		 * @brief Deregister a file from an index server
 		 * @param hash hash of the file
+		 * @param master True if origin server is running command
 		 * @return Sucessfully deregistered
 		*/
-		bool deregister(entryHash_t hash);
+		bool deregister(entryHash_t hash, bool master);
 
 		/**
 		 * @brief Invalidate a existing file on index server

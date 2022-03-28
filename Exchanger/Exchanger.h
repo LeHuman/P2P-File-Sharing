@@ -4,9 +4,9 @@
  * @brief Exchanger module deals with handeling the communication between peers
  * @version 0.1
  * @date 2022-02-20
- * 
+ *
  * @copyright Copyright (c) 2022
- * 
+ *
  */
 
 #pragma once
@@ -28,6 +28,7 @@ namespace Exchanger {
 
 	enum Mode : char {
 		P2PFile,
+		P2PFileName,
 		InvalidateFile
 	};
 
@@ -37,8 +38,9 @@ namespace Exchanger {
 	struct query_t {
 		Index::PeerResults results;
 		string downloadPath;
-		entryHash_t hash;
-		query_t(Index::PeerResults results, string hash, string downloadPath) : results { results }, hash { hash }, downloadPath { downloadPath }{};
+		std::string key;
+		bool usingHash;
+		query_t(Index::PeerResults results, string key, string downloadPath, bool usingHash) : results { results }, key { key }, downloadPath { downloadPath }, usingHash { usingHash }{};
 	};
 
 	/**
@@ -59,13 +61,16 @@ namespace Exchanger {
 		std::condition_variable cond;
 		std::queue<struct query_t> queries;
 		std::unordered_map<Index::entryHash_t, Util::File> localFiles;
+		std::unordered_map<std::string, Util::File> localFileNames;
 
 		std::function<void(Util::File)> invalidationListener = nullptr;
+		std::function<void(Util::File, Index::origin_t)> downloadListener = nullptr;
+		std::function<Index::origin_t(Util::File)> originHandler = nullptr;
 
 		void fileSender(uint32_t id, asio::ip::tcp::iostream stream);
-		bool fileReceiver(asio::ip::tcp::iostream &stream, uint32_t eid, entryHash_t hash, string downloadPath);
+		bool fileReceiver(asio::ip::tcp::iostream &stream, uint32_t eid, std::string key, string downloadPath, bool usingHash);
 		void listener(uint32_t id, uint16_t port);
-		void peerResolver(Index::PeerResults peers, Index::entryHash_t hash, string downloadPath);
+		void peerResolver(Index::PeerResults peers, std::string key, string downloadPath, bool usingHash);
 		void receiver();
 		void _startSocket(uint32_t id, uint16_t listeningPort);
 
@@ -79,10 +84,7 @@ namespace Exchanger {
 		 * @param listeningPort The port that this peer should listen to
 		 * @param downloadPath the directory to download/upload to/from
 		*/
-		Exchanger(uint32_t id, uint16_t listeningPort, string downloadPath);
-
-
-		void setInvalidationListener(const std::function<void(Util::File)> &listener);
+		Exchanger(uint32_t id, uint16_t listeningPort, string downloadPath, const std::function<void(Util::File, Index::origin_t)> &downloadListener, const std::function<void(Util::File)> &invalidationListener, std::function<Index::origin_t(Util::File)> originHandler);
 
 		/**
 		 * @brief stop this exchanger
@@ -99,30 +101,31 @@ namespace Exchanger {
 		/**
 		 * @brief download a file from a peer
 		 * @param results The results from an index server
-		 * @param hash The hash of the file to download
+		 * @param key The hash of the file to download or alternatively the filename
+		 * @param usingHash whether to search using a hash, else, use a filename
 		 * @Return download queued
 		*/
-		bool download(Index::PeerResults results, entryHash_t hash);
+		bool download(Index::PeerResults results, std::string key, bool usingHash = true);
 
-        /**
-         * @brief Adds a file to the exchangers known list of files. Used to actually pass to another peer
-         * 
-         * @param file The file to store
-         */
+		/**
+		 * @brief Adds a file to the exchangers known list of files. Used to actually pass to another peer
+		 *
+		 * @param file The file to store
+		 */
 		void addLocalFile(Util::File file);
 
-        /**
-         * @brief Removes a file from the exchangers known list of files.
-         * 
-         * @param file The file to remove
-         */
+		/**
+		 * @brief Removes a file from the exchangers known list of files.
+		 *
+		 * @param file The file to remove
+		 */
 		void removeLocalFile(Util::File file);
 
-        /**
-         * @brief Updates a file if it was modified
-         * 
-         * @param file The file to update
-         */
+		/**
+		 * @brief Updates a file if it was modified
+		 *
+		 * @param file The file to update
+		 */
 		void updateLocalFile(Util::File file);
 	};
 }
