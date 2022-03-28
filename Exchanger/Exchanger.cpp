@@ -333,7 +333,7 @@ namespace Exchanger {
 							state = State::Disconnect;
 							break;
 						}
-						addLocalFile(file);
+						updateLocalFile(file);
 						Log.d(cID, "Running finished listener for hash: %s", key.data());
 						downloadListener(file, origin);
 						status = true;
