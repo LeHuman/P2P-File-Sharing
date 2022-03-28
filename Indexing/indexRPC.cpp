@@ -110,7 +110,7 @@ namespace Index {
 		for (Entry::searchEntry &rs : _R) { // TODO: O(n^2)
 			bool found = false;
 			for (Entry::searchEntry &ls : R) {
-				if (ls == rs) {
+				if (ls == rs && !rs.isMasterEntry()) { // Only merge if the entry being added is not a master one
 					ls += rs; // TODO: time stamp is possibly wrong, due to race condition, not critical
 					found = true;
 					break; // There should at most be one exact duplicate per entry
@@ -230,6 +230,8 @@ namespace Index {
 
 				EntryResults R = database->search(query);
 
+				bool inital = false;
+
 				if (TTL == -1) { // -1 means an actual peer is making the request, initialize to total super peers
 					if (all2all) {
 						TTL = 0; // propagated calls will not propagate any further
@@ -252,6 +254,8 @@ namespace Index {
 					} else {
 						TTL = _TTL;
 					}
+
+					inital = true;
 				}
 
 				TTL--;
@@ -273,15 +277,19 @@ namespace Index {
 					combineEntries(R, _Ra);
 				}
 
-				EntryResults M;
-				splitResults(R, M);
-				EntryResults F;
-				Index::combineResults(M, R, F, false);
-				F.insert(F.end(), M.begin(), M.end());
+				if (inital) {
+					EntryResults M;
+					splitResults(R, M);
+					EntryResults F;
+					Index::combineResults(M, R, F, false);
+					for (Entry::searchEntry &entry : F)
+						entry.peers--; // subtract one to remove origin duplicate
+					R = F;
+				}
 
 				Log.d("Indexer", "Returning results");
 				UIDs.erase(uid); // Potential to run query again? clear at a later time?
-				return F;
+				return R;
 					  });
 
 			srv->bind(k_List, [&](uid_t uid, int32_t TTL, unsigned short _port) -> EntryResults {
@@ -353,7 +361,8 @@ namespace Index {
 					splitResults(R, M);
 					EntryResults F;
 					Index::combineResults(M, R, F, false);
-					F.insert(F.end(), M.begin(), M.end());
+					for (Entry::searchEntry &entry : F)
+						entry.peers--; // subtract one to remove origin duplicate
 					R = F;
 				}
 

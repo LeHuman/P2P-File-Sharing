@@ -135,21 +135,25 @@ namespace Index {
 			string firstIndexedString();
 			string str();
 
-			bool operator==(const searchEntry &rhs) const {
-				return (this->hash == rhs.hash && this->name == rhs.name);
+			bool operator==(searchEntry &rhs) {
+				return (this->hash == rhs.hash && this->name == rhs.name && this->origin == rhs.origin);
+			}
+
+			bool isMasterEntry() {
+				return origin.master;
 			}
 
 			searchEntry &operator+=(searchEntry &rhs) {
 				// this->operator==(rhs) && 
-				if (this->origin == rhs.origin) {
+				//if (this->origin == rhs.origin) {
 					peers += rhs.peers;
 					if (rhs.firstIndexed < firstIndexed && rhs.firstIndexed > 0) {
 						firstIndexed = rhs.firstIndexed;
 					}
-				} else {
-					Log.w("searchEntry", "Attempted to concatenate two different search entries: %s:%s:%s %s:%s:%s", name.data(), hash.data(), this->origin.str().data(), rhs.name.data(), rhs.hash.data(), rhs.origin.str().data());
-					// TODO: invalidate file?
-				}
+				//} else {
+				//	Log.w("searchEntry", "Attempted to concatenate two different search entries: %s:%s:%s %s:%s:%s", name.data(), hash.data(), this->origin.str().data(), rhs.name.data(), rhs.hash.data(), rhs.origin.str().data());
+				//	// TODO: invalidate file?
+				//}
 				return *this;
 			}
 		};
