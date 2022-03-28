@@ -52,7 +52,7 @@ void Peer::originFolderListener(Util::File file, Util::File::Status status) { //
 	switch (status) {
 		case Util::File::Status::created:
 			exchanger->addLocalFile(file);
-			registerFile(file.path.filename().string(), file.hash, Index::origin_t(id, indexer->getPeerConn(), 0, true)); // TODO: run with master bit
+			registerFile(file.path.filename().string(), file.hash, Index::origin_t(id, indexer->getPeerConn(), true)); // TODO: run with master bit
 			break;
 		case Util::File::Status::erased:
 			deregisterFile(file.hash, true);
@@ -62,7 +62,7 @@ void Peer::originFolderListener(Util::File file, Util::File::Status status) { //
 			invalidateFile(file.prehash);
 			deregisterFile(file.prehash, true);
 			exchanger->updateLocalFile(file);
-			registerFile(file.path.filename().string(), file.hash, Index::origin_t(id, indexer->getPeerConn(), 0, true));
+			registerFile(file.path.filename().string(), file.hash, Index::origin_t(id, indexer->getPeerConn(), true));
 			break;
 		default:
 			Log.e(_ID, "Unknown file status: %s", file.path.filename().string().data());

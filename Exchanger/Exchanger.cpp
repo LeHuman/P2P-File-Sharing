@@ -298,7 +298,7 @@ namespace Exchanger {
 						timeout(stream);
 						stream.read(sBuf, hashLen); // Get origin ip string
 
-						origin = Index::origin_t(id, Index::conn_t(std::string(sBuf), port), 0, false);
+						origin = Index::origin_t(id, Index::conn_t(std::string(sBuf), port), false);
 
 						timeout(stream);
 						if (fileSize == 0) { // TODO: Check file size for mistmatch and also allocate file / check for space

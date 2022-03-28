@@ -56,16 +56,15 @@ namespace Index {
 		int peerID = -1; // ID of the origin server
 		conn_t conn; // Connection info for origin server
 		bool master = false; // Whether this originated from the origin server
-		size_t version = 0; // Version counter
 
-		MSGPACK_DEFINE_ARRAY(peerID, conn, master, version);
+		MSGPACK_DEFINE_ARRAY(peerID, conn, master);
 
 		bool operator==(struct origin_t &rhs) {
 			return this->peerID == rhs.peerID && this->conn == rhs.conn;
 		}
 
-		origin_t(int peerID, conn_t conn, size_t version, bool master);
-		origin_t(Peer *peer, size_t version);
+		origin_t(int peerID, conn_t conn, bool master);
+		origin_t(Peer *peer);
 		origin_t() {};
 
 		string str() {

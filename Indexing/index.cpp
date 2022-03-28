@@ -39,8 +39,8 @@ namespace Index {
 		return bt;
 	}
 
-	origin_t::origin_t(int peerID, conn_t conn, size_t version, bool master) : peerID { peerID }, conn { conn }, version { version }, master { master } {}
-	origin_t::origin_t(Peer *peer, size_t version) : peerID { peer->id }, conn { peer->connInfo }, version { version } {
+	origin_t::origin_t(int peerID, conn_t conn, bool master) : peerID { peerID }, conn { conn }, master { master } {}
+	origin_t::origin_t(Peer *peer) : peerID { peer->id }, conn { peer->connInfo } {
 	}
 
 	string Entry::searchEntry::firstIndexedString() {
