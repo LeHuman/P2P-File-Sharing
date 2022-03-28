@@ -75,6 +75,7 @@ void Peer::remoteFolderListener(Util::File file, Util::File::Status status) { //
 	}
 
 	Index::origin_t origin = indexer->getOrigin(file.prehash);
+	origin.master = false;
 
 	switch (status) { // TODO: only update exchanger if successfully registered
 		case Util::File::Status::created:
@@ -102,8 +103,6 @@ void Peer::invalidationListener(Util::File file) {
 	if (origin.peerID != -1) {
 		Index::conn_t conn = origin.conn;
 		Log.d("Invalidator", "Origin server to connect: %s", conn.str().data());
-		//deregisterFile(file.hash);
-		//exchanger->removeLocalFile(file);
 		exchanger->download(Index::PeerResults(file.name, origin.peerID, conn), file.name, false);
 	} else {
 		Log.e("Invalidator", "Origin server not found: %s", file.hash.data());
@@ -111,6 +110,7 @@ void Peer::invalidationListener(Util::File file) {
 }
 
 void Peer::downloadListener(Util::File file, Index::origin_t origin) {
+	origin.master = false;
 	registerFile(file.path.filename().string(), file.hash, origin);
 }
 
