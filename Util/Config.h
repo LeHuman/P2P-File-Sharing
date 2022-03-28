@@ -35,6 +35,8 @@ namespace Config {
 		conn_t server;
 		bool all2all;
 		bool isSuper;
+		bool pushing;
+		bool pulling;
 		vector<conn_t> neighbors;
 		int totalSupers;
 	};

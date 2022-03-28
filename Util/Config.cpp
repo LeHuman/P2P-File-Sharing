@@ -54,6 +54,8 @@ namespace Config {
 		config.ip = our["ip"];
 		config.port = our["port"];
 		config.all2all = getAllNeighbors;
+		config.pushing = configJson["pushing"].get<bool>();
+		config.pulling = configJson["pulling"].get<bool>();
 		config.isSuper = our["type"] == "super";
 		config.totalSupers = relations.size();
 
