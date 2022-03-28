@@ -65,6 +65,9 @@ int main(int argc, char *argv[]) {
 			Log.w("Client", "Watch Folder auto created");
 		}
 
+		for (const auto &entry : std::filesystem::directory_iterator(remoteFolder))
+			std::filesystem::remove_all(entry.path());
+
 		// Alloc ptr for super peer
 		Index::Indexer *s;
 
