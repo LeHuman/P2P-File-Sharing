@@ -19,6 +19,7 @@
 
 #include "Exchanger.h"
 #include "indexRPC.h"
+#include "index.h"
 #include "TestStrings.h"
 #include <Config.h>
 
@@ -27,21 +28,21 @@ using std::string;
 static const string ID = "TestPeer";
 
 void registerFile(Index::Indexer &indexer, string fileName, Index::entryHash_t hash) {
-	bool registered = indexer.registry(fileName, hash);
-	if (registered) {
-		Log.i(ID, "Registered hash: %s", fileName.data());
-	} else {
-		Log.e(ID, "Unable to registered hash: %s", fileName.data());
-	}
+	//bool registered = indexer.registry(fileName, hash);
+	//if (registered) {
+	//	Log.i(ID, "Registered hash: %s", fileName.data());
+	//} else {
+	//	Log.e(ID, "Unable to registered hash: %s", fileName.data());
+	//}
 }
 
 void deregisterFile(Index::Indexer &indexer, Index::entryHash_t hash) {
-	bool deregistered = indexer.deregister(hash);
-	if (deregistered) {
-		Log.i(ID, "Deregistered hash: %s", hash.data());
-	} else {
-		Log.e(ID, "Unable to deregister hash: %s", hash.data());
-	}
+	//bool deregistered = indexer.deregister(hash);
+	//if (deregistered) {
+	//	Log.i(ID, "Deregistered hash: %s", hash.data());
+	//} else {
+	//	Log.e(ID, "Unable to deregister hash: %s", hash.data());
+	//}
 }
 
 Index::Indexer *_indexer;
@@ -158,14 +159,14 @@ int main(int argc, char *argv[]) {
 	
 	Index::Indexer *s;
 
-	Index::Indexer indexer(id, clientPort, serverIP, serverPort);
-	Exchanger::Exchanger exchanger(idArg.getValue(), clientPort, folder);
+	Index::Indexer indexer(id, clientPort, serverIP, serverPort, config.pushing, config.pulling);
+	Exchanger::Exchanger exchanger(idArg.getValue(), clientPort, folder, [&](Util::File file, Index::origin_t origin) {}, [&](Util::File file) {}, [&](Util::File file) {return indexer.getOrigin(file.hash); });
 
 	_indexer = &indexer;
 	_exchanger = &exchanger;
 
 	if (config.isSuper) { // Create server if this is a super peer
-		s = new Index::Indexer(config.server.port, config.totalSupers, config.all2all);
+		s = new Index::Indexer(config.server.port, config.totalSupers, config.pushing, config.pulling, config.all2all);
 		for (Index::conn_t conn : config.neighbors) {
 			if (conn != config.server) { // Ensure we don't reference ourselves
 				s->addNeighboor(conn);
