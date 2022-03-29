@@ -13,27 +13,27 @@
 
 #include <chrono>
 #include <mutex>
-#include <utility>
 #include <string>
 #include <unordered_set>
+#include <utility>
 
 #include "Log.h"
 #include "rpc/server.h"
 
 namespace Index {
-	using std::string;
-	using std::pair;
-	using std::vector;
 	using std::mutex;
-	using std::unordered_set;
+	using std::pair;
+	using std::string;
 	using std::unordered_map;
+	using std::unordered_set;
+	using std::vector;
 	struct Peer;
 
 	using entryHash_t = std::string;
 
 	/**
 	 * @brief struct conn_t represents connection info that is passed between client/server to represent connections
-	*/
+	 */
 	struct conn_t {
 		string ip;
 		uint16_t port = 0;
@@ -51,10 +51,10 @@ namespace Index {
 
 	/**
 	 * @brief Information related to an origin server (leaf node)
-	*/
+	 */
 	struct origin_t {
-		int peerID = -1; // ID of the origin server
-		conn_t conn; // Connection info for origin server
+		int peerID = -1;     // ID of the origin server
+		conn_t conn;         // Connection info for origin server
 		bool master = false; // Whether this originated from the origin server
 
 		MSGPACK_DEFINE_ARRAY(peerID, conn, master);
@@ -75,8 +75,8 @@ namespace Index {
 	/**
 	 * @brief Template class that can have refrences to another datatype, used by Entry and Peer
 	 * @tparam T The datatype to refrence
-	*/
-	template<typename T>
+	 */
+	template <typename T>
 	class Referer {
 	protected:
 		bool isValid = false;
@@ -112,7 +112,7 @@ namespace Index {
 
 	/**
 	 * @brief Entry represents a file entry in the database, also references Peers that have this file available
-	*/
+	 */
 	struct Entry : public Referer<Peer> {
 		entryHash_t hash;
 		string name;
@@ -121,15 +121,20 @@ namespace Index {
 
 		/**
 		 * @brief Entry::searchEntry is used to pass information over RPC, related to entries
-		*/
+		 */
 		struct searchEntry {
 			entryHash_t hash;
 			string name;
 			origin_t origin;
 			size_t peers = 0;
 			time_t firstIndexed = 0;
+			time_t TTR = -1;
 
-			MSGPACK_DEFINE_ARRAY(hash, name, origin, peers, firstIndexed);
+			MSGPACK_DEFINE_ARRAY(hash, name, origin, peers, firstIndexed, TTR);
+
+			searchEntry(){}
+			searchEntry(entryHash_t hash, string name, origin_t origin, size_t peers, time_t firstIndexed, time_t TTR) : hash { hash }, name { name }, origin { origin }, peers { peers }, firstIndexed { firstIndexed }, TTR { TTR } {
+			}
 
 			string firstIndexedString();
 			string str();
@@ -143,12 +148,12 @@ namespace Index {
 			}
 
 			searchEntry &operator+=(searchEntry &rhs) {
-				// this->operator==(rhs) && 
-				//if (this->origin == rhs.origin) {
-					peers += rhs.peers;
-					if (rhs.firstIndexed < firstIndexed && rhs.firstIndexed > 0) {
-						firstIndexed = rhs.firstIndexed;
-					}
+				// this->operator==(rhs) &&
+				// if (this->origin == rhs.origin) {
+				peers += rhs.peers;
+				if (rhs.firstIndexed < firstIndexed && rhs.firstIndexed > 0) {
+					firstIndexed = rhs.firstIndexed;
+				}
 				//} else {
 				//	Log.w("searchEntry", "Attempted to concatenate two different search entries: %s:%s:%s %s:%s:%s", name.data(), hash.data(), this->origin.str().data(), rhs.name.data(), rhs.hash.data(), rhs.origin.str().data());
 				//	// TODO: invalidate file?
@@ -164,12 +169,12 @@ namespace Index {
 		 * @param peer The origin server peer struct
 		 * @param version Version number of this file. defaults to 0
 		 * @note this is should only be used internally
-		*/
+		 */
 		Entry(string name, entryHash_t hash, origin_t origin) : name { name }, hash { hash } {
 			isValid = true;
 			this->origin = origin;
 		}
-		
+
 		Entry(const Index::Entry &e) : name { e.name }, hash { e.hash } {
 			isValid = true;
 			origin = e.origin;
@@ -185,7 +190,7 @@ namespace Index {
 		}
 
 		bool invalidated() {
-			return TTR != -1 && TTR < std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+			return TTR < std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()); // TODO: don't check actual time each time
 		}
 
 		bool operator==(const Entry &other) const {
@@ -195,14 +200,14 @@ namespace Index {
 
 	/**
 	 * @brief Peer represents a peer in the database, also references files that this peer has available
-	*/
+	 */
 	struct Peer : public Referer<Entry> {
 		int id = -1;
 		conn_t connInfo;
 
 		/**
 		 * @brief Peer::searchEntry is used to pass information over RPC, related to peers
-		*/
+		 */
 		struct searchEntry {
 			int id = -1;
 			conn_t connInfo;
@@ -217,7 +222,7 @@ namespace Index {
 		 * @param id The unique id of this peer
 		 * @param connInfo The connection info for this peer
 		 * @note this is should only be used internally
-		*/
+		 */
 		Peer(int id, conn_t connInfo) : id { id }, connInfo { connInfo } {
 			isValid = true;
 		}
@@ -238,9 +243,9 @@ namespace Index {
 
 		MSGPACK_DEFINE_ARRAY(fileName, peers);
 
-		PeerResults(){}
+		PeerResults() {}
 
-		PeerResults(string fileName, std::vector<Peer::searchEntry> peers) : fileName { fileName }, peers {peers} {
+		PeerResults(string fileName, std::vector<Peer::searchEntry> peers) : fileName { fileName }, peers { peers } {
 		}
 
 		PeerResults(string fileName, int id, conn_t connInfo) : fileName { fileName } {
@@ -261,7 +266,7 @@ namespace Index {
 
 	/**
 	 * @brief basic database implementation that uses unordered_map to store peer and file entry information.
-	*/
+	 */
 	class Database {
 		std::mutex mutex; // TODO: use shared_mutex or optimize to allow registry and deregister run concurrently
 		unordered_map<int, Peer *> peers {};
@@ -269,7 +274,6 @@ namespace Index {
 		unordered_map<entryHash_t, Entry *> origins {};
 
 	public:
-
 		/**
 		 * @brief Register a new file to the database
 		 * @param id The id of the peer to index
@@ -279,7 +283,7 @@ namespace Index {
 		 * @param origin information about both the request and file
 		 *
 		 * @return If registering of the file was successful
-		*/
+		 */
 		bool registry(int id, conn_t connection, string entryName, entryHash_t hash, origin_t origin);
 
 		/**
@@ -287,7 +291,7 @@ namespace Index {
 		 * @param hash hash of the file
 		 *
 		 * @return Peers that have the invalid entry
-		*/
+		 */
 		unordered_set<Index::Peer> invalidate(entryHash_t hash);
 
 		/**
@@ -298,39 +302,42 @@ namespace Index {
 		 * @param master True if origin server is running command
 		 *
 		 * @return If deregistering of the file was successful
-		*/
+		 */
 		bool deregister(int id, conn_t connection, entryHash_t hash, bool master);
 
 		/**
 		 * @brief Search for a file entry by it's name
 		 * @param query The substring to search for
 		 * @return The vector of entries that were found
-		*/
+		 */
 		EntryResults search(string query);
 
 		/**
 		 * @brief List every file on the database
 		 * @return The vector of every entry
-		*/
+		 */
 		EntryResults list();
 
 		/**
 		 * @brief Request a specific file to be downloaded
 		 * @param hash The hash of the file to download
 		 * @return The list of peers that have this file
-		*/
+		 */
 		PeerResults request(entryHash_t hash);
+
+		EntryResults getInvalidated(int id);
 
 		origin_t getOrigin(entryHash_t hash);
 
 		bool updateTTR(entryHash_t hash, time_t TTR);
 	};
-}
+} // namespace Index
 
 namespace std {
-	template<> struct std::hash<Index::Peer> {
+	template <>
+	struct std::hash<Index::Peer> {
 		std::size_t operator()(const Index::Peer &p) const noexcept {
 			return p.id;
 		}
 	};
-}
+} // namespace std

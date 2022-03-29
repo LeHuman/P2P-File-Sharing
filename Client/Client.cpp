@@ -30,9 +30,19 @@ int main(int argc, char *argv[]) {
 		TCLAP::ValueArg<std::string> confArg("c", "configFile", "The config file to use", false, "test_config.json", "filePath", cmd);
 		TCLAP::ValueArg<std::string> upFldrArg("u", "uploadFolder", "The local folder files should be uploaded from", false, "", "directory", cmd);
 		TCLAP::ValueArg<std::string> dnFldrArg("d", "downloadFolder", "The local folder files should be downloaded to", false, "", "directory", cmd);
+		TCLAP::ValueArg<time_t> ttrArg("r", "ttr", "Time To Refresh (TTR) in seconds", false, 5, "int", cmd);
 		TCLAP::SwitchArg all2all("a", "all2all", "enable all2all mode", cmd);
+		TCLAP::SwitchArg pushingArg("s", "pushing", "enable pushing of invalidation calls", cmd);
+		TCLAP::SwitchArg pullingArg("l", "pulling", "enable pulling of invalidation calls", cmd);
 
 		cmd.parse(argc, argv);
+
+		bool pushing = pushingArg.getValue();
+		bool pulling = pullingArg.getValue();
+
+		if (!pushing && !pulling) {
+			throw TCLAP::ArgException("Either pushing or pulling needs to be enabled");
+		}
 
 		Config::config_t config;
 
@@ -72,10 +82,10 @@ int main(int argc, char *argv[]) {
 		Index::Indexer *s;
 
 		// Create a Peer object
-		Peer c(idArg.getValue(), config.port + 1000, config.server.ip, config.server.port, originFolder, remoteFolder, config.pushing, config.pulling); //1000 is added to port to differentiate client to server when on super peers
+		Peer c(idArg.getValue(), config.port + 1000, config.server.ip, config.server.port, originFolder, remoteFolder, pushing, pulling, ttrArg.getValue()); //1000 is added to port to differentiate client to server when on super peers
 
 		if (config.isSuper) { // Create server if this is a super peer
-			s = new Index::Indexer(config.server.port, config.totalSupers, config.pushing, config.pulling, config.all2all);
+			s = new Index::Indexer(config.server.port, config.totalSupers, pushing, pulling, config.all2all);
 			for (Index::conn_t conn : config.neighbors) {
 				if (conn != config.server) { // Ensure we don't reference ourselves
 					s->addNeighboor(conn);

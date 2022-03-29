@@ -30,6 +30,7 @@ class Peer {
 	std::string uploadPath, downloadPath;
 	bool pulling = false; // Enable pull mode for consistency checking
 	bool pushing = false; // Enable push mode for consistency checking
+	time_t _TTR = 0;
 
 	Util::Folder *originWatcher = nullptr;
 	Util::Folder *remoteWatcher = nullptr;
@@ -49,6 +50,8 @@ class Peer {
 
 	void invalidationListener(Util::File file);
 
+	void pullingListener(Index::Entry::searchEntry entry);
+
 	void downloadListener(Util::File file, Index::origin_t origin);
 
 	Index::origin_t originHandler(Index::entryHash_t hash);
@@ -65,7 +68,7 @@ public:
 	 * @param uploadPath The path to the folder to upload from.
 	 * @param downloadPath The path to the folder to download to.
 	*/
-	Peer(uint32_t id, uint16_t listeningPort, std::string indexingIP, uint16_t indexingPort, std::string uploadPath, std::string downloadPath, bool pushing, bool pulling);
+	Peer(uint32_t id, uint16_t listeningPort, std::string indexingIP, uint16_t indexingPort, std::string uploadPath, std::string downloadPath, bool pushing, bool pulling, time_t TTR);
 
 	/**
 	 * @brief Switch to this Peer's interactive console

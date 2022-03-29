@@ -8,13 +8,15 @@ import shutil
 from time import sleep
 import pandas as pd
 
-def runTest(runs, interject, all2all):
+def runTest(runs, mode, all2all, delay):
     procs = []
 
-    all2all = "-a" if all2all else ""
+    all2all = "-a" if all2all == 1 else ""
+    pushing = "-s" if (mode == 1 or mode == 3) else ""
+    pulling = "-l" if (mode == 2 or mode == 3) else ""
 
     for i in range(runs):
-        procs.append(subprocess.Popen(f"wt --title {i} Client.exe -i {i} -c test_config.json {all2all}"))
+        procs.append(subprocess.Popen(f"wt --title {i} Client.exe -i {i} -c test_config.json -r {delay} {all2all} {pushing} {pulling}"))
         sleep(0.03)
 
     for proc in procs:
@@ -23,6 +25,6 @@ def runTest(runs, interject, all2all):
 
 def main():
     """Main Function"""
-    runTest(int(sys.argv[1]), int(sys.argv[2]), len(sys.argv) > 3) # 29 n
+    runTest(int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4])) # 29 [1,2,3] [0,1] x>0
 
 main()

@@ -111,6 +111,10 @@ void Peer::invalidationListener(Util::File file) {
 	}
 }
 
+void Peer::pullingListener(Index::Entry::searchEntry entry) {
+	exchanger->download(Index::PeerResults(entry.name, entry.origin.peerID, entry.origin.conn), entry.hash, false);
+}
+
 void Peer::downloadListener(Util::File file, Index::origin_t origin) {
 	origin.master = false;
 	registerFile(file.path.filename().string(), file.hash, origin);
@@ -122,7 +126,7 @@ Index::origin_t Peer::originHandler(Index::entryHash_t hash) {
 	return o;
 }
 
-Peer::Peer(uint32_t id, uint16_t listeningPort, std::string indexingIP, uint16_t indexingPort, std::string uploadPath, std::string downloadPath, bool pushing, bool pulling) :id { id }, listeningPort { listeningPort }, indexingIP { indexingIP }, indexingPort { indexingPort }, uploadPath { uploadPath }, downloadPath { downloadPath }, pushing { pushing }, pulling { pulling } {
+Peer::Peer(uint32_t id, uint16_t listeningPort, std::string indexingIP, uint16_t indexingPort, std::string uploadPath, std::string downloadPath, bool pushing, bool pulling, time_t TTR) :id { id }, listeningPort { listeningPort }, indexingIP { indexingIP }, indexingPort { indexingPort }, uploadPath { uploadPath }, downloadPath { downloadPath }, pushing { pushing }, pulling { pulling }, _TTR {TTR} {
 	_console.setPrompt("Client-" + std::to_string(id));
 	_console.addParser(indexRPCFunc);
 }
@@ -144,9 +148,10 @@ void Peer::start() {
 		return;
 	}
 
-	indexer = new Index::Indexer(id, listeningPort, indexingIP, indexingPort, pushing, pulling);
-	indexer->start();
+	indexer = new Index::Indexer(id, listeningPort, indexingIP, indexingPort, pushing, pulling, [&](Index::Entry::searchEntry entry) {pullingListener(entry); });
+	indexer->start(_TTR);
 	exchanger = new Exchanger::Exchanger(id, listeningPort, downloadPath, [&](Util::File file, Index::origin_t origin) {downloadListener(file, origin); }, [&](Util::File file) {invalidationListener(file); }, [&](Index::entryHash_t hash) {return originHandler(hash); }, [&](Index::entryHash_t hash, time_t TTR) { indexer->updateTTR(hash, TTR); });
+	exchanger->setDefaultTTR(_TTR);
 	originWatcher = new Util::Folder(uploadPath, [&](Util::File file, Util::File::Status status) {originFolderListener(file, status); });
 	remoteWatcher = new Util::Folder(downloadPath, [&](Util::File file, Util::File::Status status) {remoteFolderListener(file, status); });
 }

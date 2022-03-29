@@ -40,6 +40,7 @@ namespace Index {
 	const string k_Search = "search";
 	const string k_GetOrigin = "get_origin";
 	const string k_UpdateTTR = "update_TTR";
+	const string k_GetInvalidated = "get_invalid";
 	const string k_List = "list";
 	const string k_Request = "request";
 	const string k_Ping = "ping";
@@ -59,10 +60,12 @@ namespace Index {
 		bool all2all = false;
 		bool pulling = false; // Enable pull mode for consistency checking
 		bool pushing = false; // Enable push mode for consistency checking
+		bool running = false;
 		int32_t _TTL = 0;
 		int id = -1;
 		std::mutex uidMux;
 		logic_t LC = 0; // Logic clock
+		std::function<void(Index::Entry::searchEntry)> pullingListener = nullptr;
 
 		/**
 		 * @brief Binds the server functions to be used by clients
@@ -73,6 +76,8 @@ namespace Index {
 		 * @brief Hashes both id and LC to return the next UID. Used internally for query propagation
 		*/
 		uid_t nextUID();
+
+		void pullingThread(time_t delay);
 
 	public:
 		~Indexer();
@@ -95,7 +100,7 @@ namespace Index {
 		 * @param sIP	The indexing server IP address this client should connect to
 		 * @param sPort The indexing server Port this client should use
 		*/
-		Indexer(int id, uint16_t cPort, string sIP, uint16_t sPort, bool pushing, bool pulling);
+		Indexer(int id, uint16_t cPort, string sIP, uint16_t sPort, bool pushing, bool pulling, std::function<void(Index::Entry::searchEntry)> pullingListener);
 
 		/**
 		 * @brief Add a neighbor's connection info
@@ -106,7 +111,7 @@ namespace Index {
 		 * @brief Start the server/client connection
 		 * @note Is non-blocking
 		*/
-		void start();
+		void start(time_t delay=10);
 
 		/**
 		 * @brief Stop the server/client connection

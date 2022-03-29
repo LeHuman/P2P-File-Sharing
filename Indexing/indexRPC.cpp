@@ -44,7 +44,7 @@ namespace Index {
 		bindFunctions();
 	}
 
-	Indexer::Indexer(int id, uint16_t cPort, string sIP, uint16_t sPort, bool pushing, bool pulling) : pushing { pushing }, pulling { pulling } {
+	Indexer::Indexer(int id, uint16_t cPort, string sIP, uint16_t sPort, bool pushing, bool pulling, std::function<void(Index::Entry::searchEntry)> pullingListener) : pushing { pushing }, pulling { pulling }, pullingListener { pullingListener } {
 		this->id = id;
 		peerConn.ip = "127.0.0.1"; // Modified when connected to an indexing server
 		peerConn.port = cPort;
@@ -148,7 +148,10 @@ namespace Index {
 				connection.ip = rpc::this_session().remoteAddr;
 				return database->deregister(id, connection, hash, master); });
 			srv->bind(k_GetOrigin, [&](entryHash_t hash) -> Index::origin_t {
-				return database->getOrigin(hash); });			
+				return database->getOrigin(hash); });						
+			srv->bind(k_GetInvalidated, [&](int id) -> Index::EntryResults {
+				return database->getInvalidated(id); 
+			});
 			srv->bind(k_UpdateTTR, [&](entryHash_t hash, time_t TTR) -> bool {
 				return database->updateTTR(hash, TTR); });
 			srv->bind(k_Ping, [&]() {return true; });
@@ -438,6 +441,7 @@ namespace Index {
 	}
 
 	void Indexer::stop() {
+		running = false;
 		if (isServer) {
 			Log.i("Indexer", "Stopping Server");
 			srv->stop();
@@ -450,11 +454,31 @@ namespace Index {
 		}
 	}
 
-	void Indexer::start() {
+	void Indexer::pullingThread(time_t delay) {
+		try {
+			while (running) {
+				std::this_thread::sleep_for(std::chrono::seconds(delay));
+				EntryResults results = clt->call(k_GetInvalidated, id).as<EntryResults>();
+				for (Index::Entry::searchEntry &r : results) {
+					pullingListener(r);
+				}
+			}
+		} catch (std::exception &e) {
+			Log.f("Indexer", "Pulling thread exception: %s\n", e.what());
+		}
+
+	}
+
+	void Indexer::start(time_t delay) {
+		running = true;
 		if (isServer) {
 			Log.i("Indexer", "Running Server");
 			srv->async_run(std::thread::hardware_concurrency() * 2);
 		} else {
+			if (pulling) {
+				Log.i("Indexer", "Running client pulling thread");
+				std::thread(&Indexer::pullingThread, this, delay).detach();
+			}
 			Log.i("Indexer", "Running Client");
 			while (true) {
 				try {

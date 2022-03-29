@@ -313,11 +313,11 @@ namespace Index {
 		mutex.lock(); // TODO: lock individual Entry mutex instead, must consider entry being deleted
 		for (pair<entryHash_t, Entry *> entry : remotes) {
 			Entry *val = entry.second;
-			_remotes.emplace_back(val->hash, val->name, val->origin, val->refrenceCount(), val->firstIndexed);
+			_remotes.emplace_back(val->hash, val->name, val->origin, val->refrenceCount(), val->firstIndexed, val->TTR);
 		}
 		for (pair<entryHash_t, Entry *> entry : origins) {
 			Entry *val = entry.second;
-			_origins.emplace_back(val->hash, val->name, val->origin, val->refrenceCount(), val->firstIndexed);
+			_origins.emplace_back(val->hash, val->name, val->origin, val->refrenceCount(), val->firstIndexed, val->TTR);
 		}
 		mutex.unlock();
 
@@ -353,7 +353,7 @@ namespace Index {
 
 			if (lowerName.find(search_v) != string::npos) {
 				Entry *val = entry.second;
-				_remotes.emplace_back(val->hash, val->name, val->origin, val->refrenceCount(), val->firstIndexed);
+				_remotes.emplace_back(val->hash, val->name, val->origin, val->refrenceCount(), val->firstIndexed, val->TTR);
 			}
 		}
 
@@ -363,7 +363,7 @@ namespace Index {
 
 			if (lowerName.find(search_v) != string::npos) {
 				Entry *val = entry.second;
-				_origins.emplace_back(val->hash, val->name, val->origin, val->refrenceCount(), val->firstIndexed);
+				_origins.emplace_back(val->hash, val->name, val->origin, val->refrenceCount(), val->firstIndexed, val->TTR);
 			}
 		}
 		mutex.unlock();
@@ -374,6 +374,25 @@ namespace Index {
 		}
 
 		combineResults(_origins, _remotes, results);
+
+		return results;
+	}
+
+	EntryResults Database::getInvalidated(int id) {
+		EntryResults results;
+
+		Log.d("getInvalid", "Searching for invalid: %d", id);
+
+		std::lock_guard<std::mutex> lck(mutex);
+		if (!peers.contains(id))
+			return results;
+
+		for (auto it = peers[id]->refrences.begin(); it != peers[id]->refrences.end(); it++) {
+			Index::Entry *e = *it;
+			if (e->invalidated()) {
+				results.emplace_back(e->hash, e->name, e->origin, e->refrenceCount(), e->firstIndexed, e->TTR);
+			}
+		}
 
 		return results;
 	}
@@ -411,12 +430,6 @@ namespace Index {
 		if (remotes.contains(hash)) {
 			return remotes[hash]->origin;
 		}
-
-		//for (auto remote : remotes) {
-		//	if (remote.second->name == hash) {
-		//		return remote.second->origin;
-		//	}
-		//}
 
 		Log.e("getOrigin", "Unable to get origin: %s", hash.data());
 		return origin_t();

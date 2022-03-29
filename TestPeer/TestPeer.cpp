@@ -139,7 +139,13 @@ int main(int argc, char *argv[]) {
 	TCLAP::ValueArg<std::string> confArg("c", "configFile", "The config file to use", false, "test_config.json", "filePath", cmd);
 	TCLAP::SwitchArg all2all("a", "all2all", "enable all2all mode", cmd);
 	TCLAP::SwitchArg enabled("e", "enabled", "Whether this client should actively make queries", cmd);
+	TCLAP::ValueArg<time_t> ttrArg("r", "ttr", "Time To Refresh (TTR) in seconds", false, 5, "int", cmd);
+	TCLAP::SwitchArg pushingArg("s", "pushing", "enable pushing of invalidation calls", cmd);
+	TCLAP::SwitchArg pullingArg("l", "pulling", "enable pulling of invalidation calls", cmd);
 	cmd.parse(argc, argv);
+
+	bool pushing = pushingArg.getValue();
+	bool pulling = pullingArg.getValue();
 
 	uint32_t id = idArg.getValue();
 
@@ -159,14 +165,14 @@ int main(int argc, char *argv[]) {
 	
 	Index::Indexer *s;
 
-	Index::Indexer indexer(id, clientPort, serverIP, serverPort, config.pushing, config.pulling);
+	Index::Indexer indexer(id, clientPort, serverIP, serverPort, pushing, pulling, [&](Index::Entry::searchEntry entry) { });
 	Exchanger::Exchanger exchanger(idArg.getValue(), clientPort, folder, [&](Util::File file, Index::origin_t origin) {}, [&](Util::File file) {}, [&](Util::File file) {return indexer.getOrigin(file.hash); }, [&](Index::entryHash_t, time_t TTR) {});
 
 	_indexer = &indexer;
 	_exchanger = &exchanger;
 
 	if (config.isSuper) { // Create server if this is a super peer
-		s = new Index::Indexer(config.server.port, config.totalSupers, config.pushing, config.pulling, config.all2all);
+		s = new Index::Indexer(config.server.port, config.totalSupers, pushing, pulling, config.all2all);
 		for (Index::conn_t conn : config.neighbors) {
 			if (conn != config.server) { // Ensure we don't reference ourselves
 				s->addNeighboor(conn);
