@@ -284,18 +284,27 @@ namespace Index {
 	void combineResults(EntryResults &origins, EntryResults &remotes, EntryResults &results, bool leftovers) {
 		for (Entry::searchEntry &o : origins) {
 			EntryResults::iterator mit;
+			o.icount = 0;
+
+			int total = 0;
 
 			for (mit = remotes.begin(); mit != remotes.end(); ) {
 				Entry::searchEntry &r = *mit;
 				if (o.name == r.name) {
-					if (o.hash == r.hash) { // TODO: match version number?
+					if (o.hash == r.hash) {
 						o += r;
+					} else {
+						o.icount++; // Invalid entry, not matching in hash, meaning it is inconsistent
 					}
 					mit = remotes.erase(mit);
+					total++;
 				} else {
 					mit++;
 				}
 			}
+
+			o.icount /= total;
+
 			results.push_back(o);
 		}
 		if (leftovers) {
@@ -323,7 +332,7 @@ namespace Index {
 
 		if (_remotes.empty()) {
 			Log.w("List", "Query resulted empty");
-			return results;
+			return EntryResults();
 		}
 
 		combineResults(_origins, _remotes, results);

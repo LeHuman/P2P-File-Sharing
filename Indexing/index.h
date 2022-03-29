@@ -129,8 +129,9 @@ namespace Index {
 			size_t peers = 0;
 			time_t firstIndexed = 0;
 			time_t TTR = -1;
+			float icount = 0;
 
-			MSGPACK_DEFINE_ARRAY(hash, name, origin, peers, firstIndexed, TTR);
+			MSGPACK_DEFINE_ARRAY(hash, name, origin, peers, firstIndexed, TTR, icount);
 
 			searchEntry(){}
 			searchEntry(entryHash_t hash, string name, origin_t origin, size_t peers, time_t firstIndexed, time_t TTR) : hash { hash }, name { name }, origin { origin }, peers { peers }, firstIndexed { firstIndexed }, TTR { TTR } {
