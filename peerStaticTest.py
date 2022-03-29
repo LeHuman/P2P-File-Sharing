@@ -11,11 +11,11 @@ import pandas as pd
 def runTest(runs, interject, all2all):
     procs = []
 
-    for i in range(runs):
-        if i != interject:
-            procs.append(subprocess.Popen(["Client.exe", f"-i {i}", "-c test_config.json", "-a" if all2all else ""]))
+    all2all = "-a" if all2all else ""
 
-    subprocess.Popen(f"wt Client.exe -i {interject}")
+    for i in range(runs):
+        procs.append(subprocess.Popen(f"wt --title {i} Client.exe -i {i} -c test_config.json {all2all}"))
+        sleep(0.03)
 
     for proc in procs:
         proc.wait()
