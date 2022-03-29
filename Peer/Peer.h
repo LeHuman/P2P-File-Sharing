@@ -51,6 +51,8 @@ class Peer {
 
 	void downloadListener(Util::File file, Index::origin_t origin);
 
+	Index::origin_t originHandler(Index::entryHash_t hash);
+
 public:
 	~Peer();
 

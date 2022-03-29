@@ -53,6 +53,8 @@ namespace Util {
 		*/
 		void update(fs::file_time_type time, uintmax_t size);
 
+		void refresh();
+
 		/**
 		 * @brief Compute the hash of this file
 		 * @note Use the hash parameter to get the saved hash

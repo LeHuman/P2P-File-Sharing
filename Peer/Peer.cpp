@@ -59,10 +59,15 @@ void Peer::originFolderListener(Util::File file, Util::File::Status status) { //
 			exchanger->removeLocalFile(file);
 			break;
 		case Util::File::Status::modified:
-			invalidateFile(file.prehash);
+			if (file.prehash == file.hash) {
+				Log.w(_ID, "File modified retained hash, not updating: %s", file.hash.data());
+				break;
+			}
 			deregisterFile(file.prehash, true);
 			exchanger->updateLocalFile(file);
 			registerFile(file.path.filename().string(), file.hash, Index::origin_t(id, indexer->getPeerConn(), true));
+			Log.d("originFolderListener", "Propagating invalidation", file.prehash.data());
+			invalidateFile(file.prehash);
 			break;
 		default:
 			Log.e(_ID, "Unknown file status: %s", file.path.filename().string().data());
@@ -100,7 +105,7 @@ void Peer::invalidationListener(Util::File file) {
 	if (origin.peerID != -1) {
 		Index::conn_t conn = origin.conn;
 		Log.d("Invalidator", "Origin server to connect: %s", conn.str().data());
-		exchanger->download(Index::PeerResults(file.name, origin.peerID, conn), file.name, false);
+		exchanger->download(Index::PeerResults(file.name, origin.peerID, conn), file.hash, false);
 	} else {
 		Log.e("Invalidator", "Origin server not found: %s", file.hash.data());
 	}
@@ -109,6 +114,12 @@ void Peer::invalidationListener(Util::File file) {
 void Peer::downloadListener(Util::File file, Index::origin_t origin) {
 	origin.master = false;
 	registerFile(file.path.filename().string(), file.hash, origin);
+}
+
+Index::origin_t Peer::originHandler(Index::entryHash_t hash) {
+	Index::origin_t o = indexer->getOrigin(hash);
+	o.master = false;
+	return o;
 }
 
 Peer::Peer(uint32_t id, uint16_t listeningPort, std::string indexingIP, uint16_t indexingPort, std::string uploadPath, std::string downloadPath, bool pushing, bool pulling) :id { id }, listeningPort { listeningPort }, indexingIP { indexingIP }, indexingPort { indexingPort }, uploadPath { uploadPath }, downloadPath { downloadPath }, pushing { pushing }, pulling { pulling } {
@@ -135,7 +146,7 @@ void Peer::start() {
 
 	indexer = new Index::Indexer(id, listeningPort, indexingIP, indexingPort, pushing, pulling);
 	indexer->start();
-	exchanger = new Exchanger::Exchanger(id, listeningPort, downloadPath, [&](Util::File file, Index::origin_t origin) {downloadListener(file, origin); }, [&](Util::File file) {invalidationListener(file); }, [&](Util::File file) {auto o = indexer->getOrigin(file.hash); o.master = false; return o; });
+	exchanger = new Exchanger::Exchanger(id, listeningPort, downloadPath, [&](Util::File file, Index::origin_t origin) {downloadListener(file, origin); }, [&](Util::File file) {invalidationListener(file); }, [&](Index::entryHash_t hash) {return originHandler(hash); }, [&](Index::entryHash_t hash, time_t TTR) { indexer->updateTTR(hash, TTR); });
 	originWatcher = new Util::Folder(uploadPath, [&](Util::File file, Util::File::Status status) {originFolderListener(file, status); });
 	remoteWatcher = new Util::Folder(downloadPath, [&](Util::File file, Util::File::Status status) {remoteFolderListener(file, status); });
 }

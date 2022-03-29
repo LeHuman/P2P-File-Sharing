@@ -39,6 +39,7 @@ namespace Index {
 	const string k_Invalidate = "invalidate";
 	const string k_Search = "search";
 	const string k_GetOrigin = "get_origin";
+	const string k_UpdateTTR = "update_TTR";
 	const string k_List = "list";
 	const string k_Request = "request";
 	const string k_Ping = "ping";
@@ -119,6 +120,8 @@ namespace Index {
 		conn_t getPeerConn();
 
 		origin_t getOrigin(entryHash_t hash);
+
+		bool updateTTR(Index::entryHash_t hash, time_t TTR);
 
 		/**
 		 * @brief Client can ping server for delay

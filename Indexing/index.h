@@ -175,12 +175,17 @@ namespace Index {
 			origin = e.origin;
 		}
 
+		void setTTR(time_t TTR) {
+			this->TTR = TTR;
+			Log.d("Entry", "TTR Updated: %s:%lld", name.data(), TTR);
+		}
+
 		void invalidate() {
 			TTR = 0; // force update
 		}
 
 		bool invalidated() {
-			return TTR != -1 && TTR > std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+			return TTR != -1 && TTR < std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 		}
 
 		bool operator==(const Entry &other) const {
@@ -317,6 +322,8 @@ namespace Index {
 		PeerResults request(entryHash_t hash);
 
 		origin_t getOrigin(entryHash_t hash);
+
+		bool updateTTR(entryHash_t hash, time_t TTR);
 	};
 }
 

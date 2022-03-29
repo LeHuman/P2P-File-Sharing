@@ -148,7 +148,9 @@ namespace Index {
 				connection.ip = rpc::this_session().remoteAddr;
 				return database->deregister(id, connection, hash, master); });
 			srv->bind(k_GetOrigin, [&](entryHash_t hash) -> Index::origin_t {
-				return database->getOrigin(hash); });
+				return database->getOrigin(hash); });			
+			srv->bind(k_UpdateTTR, [&](entryHash_t hash, time_t TTR) -> bool {
+				return database->updateTTR(hash, TTR); });
 			srv->bind(k_Ping, [&]() {return true; });
 
 			// Propagated requests
@@ -500,7 +502,14 @@ namespace Index {
 		return clt->call(k_GetOrigin, hash).as<Index::origin_t>();
 	}
 
-	bool Indexer::registry(string entryName, entryHash_t hash, Index::origin_t origin) {
+	bool Indexer::updateTTR(Index::entryHash_t hash, time_t TTR) {
+		if (isServer) {
+			return database->updateTTR(hash, TTR);
+		}
+		return clt->call(k_UpdateTTR, hash, TTR).as<bool>();
+	}
+
+	bool Indexer::registry(string entryName, entryHash_t hash, Index::origin_t origin) { // TODO: disallow zero byte files
 		if (isServer)
 			return false;
 		return clt->call(k_Register, id, peerConn, entryName, hash, origin).as<bool>();

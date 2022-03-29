@@ -160,7 +160,7 @@ int main(int argc, char *argv[]) {
 	Index::Indexer *s;
 
 	Index::Indexer indexer(id, clientPort, serverIP, serverPort, config.pushing, config.pulling);
-	Exchanger::Exchanger exchanger(idArg.getValue(), clientPort, folder, [&](Util::File file, Index::origin_t origin) {}, [&](Util::File file) {}, [&](Util::File file) {return indexer.getOrigin(file.hash); });
+	Exchanger::Exchanger exchanger(idArg.getValue(), clientPort, folder, [&](Util::File file, Index::origin_t origin) {}, [&](Util::File file) {}, [&](Util::File file) {return indexer.getOrigin(file.hash); }, [&](Index::entryHash_t, time_t TTR) {});
 
 	_indexer = &indexer;
 	_exchanger = &exchanger;

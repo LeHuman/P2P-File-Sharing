@@ -131,6 +131,9 @@ namespace Index {
 
 		if (gotE == remotes.end()) {
 			remotes[hash] = new Entry(entryName, hash, origin);
+			if (origin.peerID == -1) {
+				Log.f("Registry", "Entry has invalid origin: %s:%s", entryName.data(), hash.data());
+			}
 		} else if (gotE->second->name != entryName) {
 			Log.w("Registry", "Entry hash already exists, using indexed entry name");
 			nameExists = true;
@@ -401,13 +404,31 @@ namespace Index {
 	}
 
 	origin_t Database::getOrigin(entryHash_t hash) {
+		std::lock_guard<std::mutex> lck(mutex);
 		if (origins.contains(hash)) {
 			return origins[hash]->origin;
 		}
 		if (remotes.contains(hash)) {
 			return remotes[hash]->origin;
 		}
+
+		//for (auto remote : remotes) {
+		//	if (remote.second->name == hash) {
+		//		return remote.second->origin;
+		//	}
+		//}
+
 		Log.e("getOrigin", "Unable to get origin: %s", hash.data());
 		return origin_t();
+	}
+
+	bool Database::updateTTR(entryHash_t hash, time_t TTR) {
+		std::lock_guard<std::mutex> lck(mutex);
+		if (remotes.contains(hash)) {
+			remotes[hash]->setTTR(TTR);
+			return true;
+		}
+		Log.e("updateTTR", "unable to update TTR: %s", hash.data());
+		return false;
 	}
 }

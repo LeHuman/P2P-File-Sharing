@@ -28,7 +28,7 @@ namespace Exchanger {
 
 	enum Mode : char {
 		P2PFile,
-		P2PFileName,
+		P2PFileUpdate,
 		InvalidateFile
 	};
 
@@ -55,8 +55,10 @@ namespace Exchanger {
 		asio::io_context *io_context = nullptr;
 
 		bool running = true;
+		time_t _TTR = 0;
 
 		std::mutex mutex;
+		std::mutex localMutex;
 		string downloadPath;
 		std::condition_variable cond;
 		std::queue<struct query_t> queries;
@@ -65,10 +67,11 @@ namespace Exchanger {
 
 		std::function<void(Util::File)> invalidationListener = nullptr;
 		std::function<void(Util::File, Index::origin_t)> downloadListener = nullptr;
-		std::function<Index::origin_t(Util::File)> originHandler = nullptr;
+		std::function<void(entryHash_t, time_t)> TTRListener = nullptr;
+		std::function<Index::origin_t(entryHash_t)> originHandler = nullptr;
 
 		void fileSender(uint32_t id, asio::ip::tcp::iostream stream);
-		bool fileReceiver(asio::ip::tcp::iostream &stream, uint32_t eid, std::string key, string downloadPath, bool usingHash);
+		int fileReceiver(asio::ip::tcp::iostream &stream, uint32_t eid, Index::entryHash_t hash, string downloadPath, bool usingHash);
 		void listener(uint32_t id, uint16_t port);
 		void peerResolver(Index::PeerResults peers, std::string key, string downloadPath, bool usingHash);
 		void receiver();
@@ -84,7 +87,7 @@ namespace Exchanger {
 		 * @param listeningPort The port that this peer should listen to
 		 * @param downloadPath the directory to download/upload to/from
 		*/
-		Exchanger(uint32_t id, uint16_t listeningPort, string downloadPath, const std::function<void(Util::File, Index::origin_t)> &downloadListener, const std::function<void(Util::File)> &invalidationListener, std::function<Index::origin_t(Util::File)> originHandler);
+		Exchanger(uint32_t id, uint16_t listeningPort, string downloadPath, const std::function<void(Util::File, Index::origin_t)> &downloadListener, const std::function<void(Util::File)> &invalidationListener, std::function<Index::origin_t(entryHash_t)> originHandler, std::function<void(entryHash_t, time_t)> TTRListener);
 
 		/**
 		 * @brief stop this exchanger
@@ -105,7 +108,7 @@ namespace Exchanger {
 		 * @param usingHash whether to search using a hash, else, use a filename
 		 * @Return download queued
 		*/
-		bool download(Index::PeerResults results, std::string key, bool usingHash = true);
+		bool download(Index::PeerResults results, std::string hash, bool usingHash = true);
 
 		/**
 		 * @brief Adds a file to the exchangers known list of files. Used to actually pass to another peer
@@ -127,5 +130,7 @@ namespace Exchanger {
 		 * @param file The file to update
 		 */
 		void updateLocalFile(Util::File file);
+
+		void setDefaultTTR(time_t TTR);
 	};
 }
