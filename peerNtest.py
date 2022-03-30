@@ -2,8 +2,6 @@ import glob
 from os import chdir
 import os
 import subprocess
-import argparse
-import sys
 import shutil
 from time import sleep
 import pandas as pd
@@ -11,7 +9,7 @@ import pandas as pd
 
 def clean():
     for clean_up in glob.glob(os.getcwd() + "\*"):
-        if not clean_up.endswith("test_config.json") and not clean_up.endswith("TestPeer.exe"):
+        if not clean_up.endswith("test_config.json") and not clean_up.endswith("TestPeer.exe") and not clean_up.endswith(".xlsx"):
             print(clean_up)
             try:
                 os.remove(clean_up)
@@ -44,14 +42,18 @@ def readCSVs():
     return avg / c
 
 
-def runTest(maxID, active, all2all):
+def runTest(maxID, active, pushORPull, all2all, delay):
     procs = []
 
+    all2all = "-a" if all2all == 1 else ""
+    pushing = "-s" if pushORPull else ""
+    pulling = "-l" if not pushORPull else ""
+
     for i in range(maxID - active):
-        procs.append(subprocess.Popen(["TestPeer.exe", f"-i {i}", "-c test_config.json", "-a" if all2all else ""]))
+        procs.append(subprocess.Popen(f"wt --title {i} TestPeer.exe -i {i} -c test_config.json -r {delay} {all2all} {pushing} {pulling}"))
 
     for i in range(maxID - active, maxID + 1):
-        procs.append(subprocess.Popen(["TestPeer.exe", f"-i {i}", "-e", "-c test_config.json", "-a" if all2all else ""]))
+        procs.append(subprocess.Popen(f"wt --title {i} TestPeer.exe -i {i} -e -c test_config.json -r {delay} {all2all} {pushing} {pulling}"))
 
     sleep(1.5)
 
@@ -61,7 +63,7 @@ def runTest(maxID, active, all2all):
 
     done = 0
 
-    while done != len(procs):
+    while done < len(procs):
         done = 0
         sleep(1)
         for _, _, files in os.walk("."):
@@ -78,23 +80,49 @@ def runTest(maxID, active, all2all):
 def main():
     """Main Function"""
 
+    shutil.copyfile("C:/Github/P2P-File-Sharing/out/build/x64-Debug/TestPeer/TestPeer.exe", "TestPeer.exe")
+
     peers = []
     avgs = []
 
     clean()
 
     for i in range(27, -1, -1):
-        runTest(28, 27 - i, True)
+        runTest(28, 27 - i, True, True, 0)
         peers.append(28 - i)
         avgs.append(readCSVs())
         clean()
-        pd.DataFrame({"Active Peers": peers, "Avg micros": avgs}).to_excel("Average Runtimes All2All.xlsx")
+        pd.DataFrame({"Active Peers": peers, "Avg invalid": avgs}).to_excel("Average Runtimes Pushing All2All.xlsx")
+
+    peers = []
+    avgs = []
 
     for i in range(27, -1, -1):
-        runTest(28, 27 - i, False)
+        runTest(28, 27 - i, True, False, 0)
         peers.append(28 - i)
         avgs.append(readCSVs())
         clean()
-        pd.DataFrame({"Active Peers": peers, "Avg micros": avgs}).to_excel("Average Runtimes Linear.xlsx")
+        pd.DataFrame({"Active Peers": peers, "Avg invalid": avgs}).to_excel("Average Runtimes Pushing Linear.xlsx")
+
+    for delay in [5,10,30]:
+        peers = []
+        avgs = []
+        for i in range(27, -1, -1):
+            runTest(28, 27 - i, False, True, delay)
+            peers.append(28 - i)
+            avgs.append(readCSVs())
+            clean()
+            pd.DataFrame({"Active Peers": peers, "Avg invalid": avgs}).to_excel(f"Average Runtimes Pulling All2All {delay}.xlsx")
+
+    for delay in [5,10,30]:
+        peers = []
+        avgs = []
+        for i in range(27, -1, -1):
+            runTest(28, 27 - i, False, False, delay)
+            peers.append(28 - i)
+            avgs.append(readCSVs())
+            clean()
+            pd.DataFrame({"Active Peers": peers, "Avg invalid": avgs}).to_excel("Average Runtimes Pulling Linear {delay}.xlsx")
+
 
 main()

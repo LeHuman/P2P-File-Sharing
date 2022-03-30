@@ -297,7 +297,7 @@ int main(int argc, char *argv[]) {
 	Util::Folder originWatcher(originFolder, [&](Util::File file, Util::File::Status status) {originFolderListener(file, status); });
 	Util::Folder remoteWatcher (remoteFolder, [&](Util::File file, Util::File::Status status) {remoteFolderListener(file, status); });
 
-	int c = 500;
+	int c = 50;
 
 	while (!std::filesystem::exists("start")) {
 		std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -351,7 +351,7 @@ int main(int argc, char *argv[]) {
 		d.close();
 
 		try {
-			while (!std::filesystem::exists("finish") && indexer.connected() && c > 0) {
+			while (!std::filesystem::exists("finish")) {
 				std::cout << c << std::endl;
 
 				std::this_thread::sleep_for(std::chrono::milliseconds(rndWait(rng)));
