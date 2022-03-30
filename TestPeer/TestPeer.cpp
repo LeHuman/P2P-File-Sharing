@@ -354,7 +354,6 @@ int main(int argc, char *argv[]) {
 
 		try {
 			while (!std::filesystem::exists("finish")) {
-				std::cout << c << std::endl;
 
 				std::this_thread::sleep_for(std::chrono::milliseconds(rndWait(rng)));
 
