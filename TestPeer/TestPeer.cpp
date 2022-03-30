@@ -348,7 +348,7 @@ int main(int argc, char *argv[]) {
 
 	} else {
 		Log.i("Standby", "Enabled");
-
+		 
 		std::ofstream d(std::to_string(id) + ".done");
 		d.close();
 
