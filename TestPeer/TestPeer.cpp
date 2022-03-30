@@ -331,7 +331,9 @@ int main(int argc, char *argv[]) {
 					deleteRndFile(remoteFolder);
 				}
 
-				csv << std::to_string(icount) << ',';
+				Log.i("Test", "Invalid counted: %f", icount);
+
+				csv << icount << ',';
 				std::this_thread::sleep_for(std::chrono::milliseconds(200));
 			}
 		} catch (const std::exception &e) {
