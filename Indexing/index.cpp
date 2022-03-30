@@ -303,7 +303,8 @@ namespace Index {
 				}
 			}
 
-			o.icount /= total;
+			if (total > 0)
+				o.icount /= total;
 
 			results.push_back(o);
 		}
