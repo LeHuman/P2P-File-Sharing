@@ -51,10 +51,9 @@ namespace Util {
 				size_t sz = (size_t)snprintf(NULL, 0, format, args ...) + 1;
 				char *buf = new char[sz];
 				snprintf(buf, sz, format, args ...);
-				print_l.lock();
+				std::lock_guard lock(print_l);
 				std::cout << C_GREY << "[" << ID << "] " << C_RESET << level << ": " << buf << std::endl;
 				std::cout << std::flush;
-				print_l.unlock();
 				delete[] buf;
 			}
 		public:
