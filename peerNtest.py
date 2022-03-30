@@ -20,7 +20,7 @@ def clean():
 def getAvg(csv):
     with open(csv) as file:
         nums = file.readlines()[0].strip(",").split(",")
-        nums = [num for num in map(int, nums)]
+        nums = [num for num in map(float, nums)]
         s = sum(nums)
         return s / len(nums)
 
@@ -50,10 +50,10 @@ def runTest(maxID, active, pushORPull, all2all, delay):
     pulling = "-l" if not pushORPull else ""
 
     for i in range(maxID - active):
-        procs.append(subprocess.Popen(f"wt --title {i} TestPeer.exe -i {i} -c test_config.json -r {delay} {all2all} {pushing} {pulling}"))
+        procs.append(subprocess.Popen(f"TestPeer.exe -i {i} -c test_config.json -r {delay} {all2all} {pushing} {pulling}"))
 
     for i in range(maxID - active, maxID + 1):
-        procs.append(subprocess.Popen(f"wt --title {i} TestPeer.exe -i {i} -e -c test_config.json -r {delay} {all2all} {pushing} {pulling}"))
+        procs.append(subprocess.Popen(f"TestPeer.exe -i {i} -e -c test_config.json -r {delay} {all2all} {pushing} {pulling}"))
 
     sleep(1.5)
 
