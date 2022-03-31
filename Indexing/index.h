@@ -48,7 +48,7 @@ namespace Index {
 
 		MSGPACK_DEFINE_ARRAY(ip, port);
 	};
-
+/*--------- start change ----------*/
 	/**
 	 * @brief Information related to an origin server (leaf node)
 	 */
@@ -71,7 +71,7 @@ namespace Index {
 			return std::to_string(peerID) + ':' + conn.str() + ':' + std::to_string(master);
 		}
 	};
-
+/*--------- end change ----------*/
 	/**
 	 * @brief Template class that can have refrences to another datatype, used by Entry and Peer
 	 * @tparam T The datatype to refrence
@@ -109,6 +109,8 @@ namespace Index {
 			return isValid;
 		}
 	};
+
+/*--------- start change ----------*/
 
 	/**
 	 * @brief Entry represents a file entry in the database, also references Peers that have this file available
@@ -199,7 +201,7 @@ namespace Index {
 			return hash == other.hash;
 		}
 	};
-
+/*--------- end change ----------*/
 	/**
 	 * @brief Peer represents a peer in the database, also references files that this peer has available
 	 */
@@ -244,7 +246,7 @@ namespace Index {
 		std::vector<Peer::searchEntry> peers;
 
 		MSGPACK_DEFINE_ARRAY(fileName, peers);
-
+/*--------- start change ----------*/
 		PeerResults() {}
 
 		PeerResults(string fileName, std::vector<Peer::searchEntry> peers) : fileName { fileName }, peers { peers } {
@@ -253,7 +255,7 @@ namespace Index {
 		PeerResults(string fileName, int id, conn_t connInfo) : fileName { fileName } {
 			peers.emplace_back(id, connInfo);
 		}
-
+/*--------- end change ----------*/
 		PeerResults &operator+=(const PeerResults &rhs) {
 			if (fileName == "" && rhs.fileName != "") {
 				fileName = rhs.fileName;
@@ -276,6 +278,7 @@ namespace Index {
 		unordered_map<entryHash_t, Entry *> origins {};
 
 	public:
+    /*--------- start change ----------*/
 		/**
 		 * @brief Register a new file to the database
 		 * @param id The id of the peer to index
@@ -295,7 +298,7 @@ namespace Index {
 		 * @return Peers that have the invalid entry
 		 */
 		unordered_set<Index::Peer> invalidate(entryHash_t hash);
-
+/*--------- end change ----------*/
 		/**
 		 * @brief Deregister a file from the database
 		 * @param id The id of the peer deregistering
@@ -319,7 +322,7 @@ namespace Index {
 		 * @return The vector of every entry
 		 */
 		EntryResults list();
-
+/*--------- start change ----------*/
 		/**
 		 * @brief Request a specific file to be downloaded
 		 * @param hash The hash of the file to download
@@ -343,3 +346,5 @@ namespace std {
 		}
 	};
 } // namespace std
+
+/*--------- end change ----------*/

@@ -43,12 +43,12 @@ namespace Util {
 		prehash = hash;
 		hash = getHash();
 	}
-
+/*--------- start change ----------*/
 	void File::refresh() {
 		this->time = fs::last_write_time(this->path);
 		this->size = fs::file_size(path);
 	}
-
+/*--------- end change ----------*/
 	string File::getHash() {
 		Log.d("File", "Hashing file: %s", name.data());
 

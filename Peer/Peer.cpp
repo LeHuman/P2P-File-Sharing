@@ -34,7 +34,7 @@ void Peer::deregisterFile(Index::entryHash_t hash, bool master) {
 		Log.e(_ID, "Unable to deregister hash: %s", hash.data());
 	}
 }
-
+/*--------- start change ----------*/
 void Peer::invalidateFile(Index::entryHash_t hash) {
 	bool invalidated = indexer->invalidate(hash);
 	if (invalidated) {
@@ -130,7 +130,7 @@ Peer::Peer(uint32_t id, uint16_t listeningPort, std::string indexingIP, uint16_t
 	_console.setPrompt("Client-" + std::to_string(id));
 	_console.addParser(indexRPCFunc);
 }
-
+/*--------- end change ----------*/
 Peer::~Peer() {
 	stop();
 }
@@ -147,7 +147,7 @@ void Peer::start() {
 		Log.w(_ID, "Already started");
 		return;
 	}
-
+/*--------- start change ----------*/
 	indexer = new Index::Indexer(id, listeningPort, indexingIP, indexingPort, pushing, pulling, [&](Index::Entry::searchEntry entry) {pullingListener(entry); });
 	indexer->start(_TTR);
 	exchanger = new Exchanger::Exchanger(id, listeningPort, downloadPath, [&](Util::File file, Index::origin_t origin) {downloadListener(file, origin); }, [&](Util::File file) {invalidationListener(file); }, [&](Index::entryHash_t hash) {return originHandler(hash); }, [&](Index::entryHash_t hash, time_t TTR) { indexer->updateTTR(hash, TTR); });
@@ -171,3 +171,4 @@ void Peer::stop() {
 	exchanger = nullptr;
 	remoteWatcher = nullptr;
 }
+/*--------- end change ----------*/

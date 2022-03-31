@@ -88,7 +88,7 @@ def main():
 
     clean()
     
-    x = 27-6
+    x = -1
 
     match int(sys.argv[1]):
         case 0:

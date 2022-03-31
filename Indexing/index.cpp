@@ -62,7 +62,7 @@ namespace Index {
 		ss << "[" << id << "] " << connInfo.ip << ":" << connInfo.port;
 		return ss.str();
 	}
-
+/*--------- start change ----------*/
 	unordered_set<Peer> Database::invalidate(entryHash_t hash) {
 		mutex.lock();
 		unordered_map<entryHash_t, Entry *>::const_iterator gotE = remotes.find(hash);
@@ -145,6 +145,7 @@ namespace Index {
 			mutex.unlock();
 			return false;
 		}
+/*--------- end change ----------*/
 
 		string saveName = e->name;
 
@@ -178,7 +179,7 @@ namespace Index {
 
 		return true;
 	}
-
+/*--------- start change ----------*/
 	bool Database::deregister(int id, conn_t connection, entryHash_t hash, bool master) {
 		mutex.lock();
 
@@ -204,7 +205,7 @@ namespace Index {
 		} else {
 			e = remotes[hash];
 		}
-
+/*--------- end change ----------*/
 		if (gotP == peers.end()) {
 			Log.w("Deregister", "Peer not found: %d", id);
 		} else {
@@ -280,7 +281,7 @@ namespace Index {
 
 		return removed == 0;
 	}
-
+/*--------- start change ----------*/
 	void combineResults(EntryResults &origins, EntryResults &remotes, EntryResults &results, bool leftovers) {
 		for (Entry::searchEntry &o : origins) {
 			EntryResults::iterator mit;
@@ -404,7 +405,7 @@ namespace Index {
 
 		return results;
 	}
-
+/*--------- end change ----------*/
 	PeerResults Database::request(entryHash_t hash) {
 		PeerResults results;
 
@@ -429,6 +430,7 @@ namespace Index {
 
 		return results;
 	}
+/*--------- start change ----------*/
 
 	origin_t Database::getOrigin(entryHash_t hash) {
 		std::lock_guard<std::mutex> lck(mutex);
@@ -453,3 +455,4 @@ namespace Index {
 		return false;
 	}
 }
+/*--------- end change ----------*/

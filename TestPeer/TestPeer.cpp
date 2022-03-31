@@ -26,7 +26,7 @@
 using std::string;
 
 static const string ID = "TestPeer";
-
+/*--------- start change ----------*/
 uint32_t id;
 Index::Indexer *_indexer;
 Exchanger::Exchanger *_exchanger;
@@ -155,7 +155,7 @@ void outputText(string msg, string path) {
 		ofs << msg.data();
 	}
 }
-
+/*--------- end change ----------*/
 void requestFile(Index::entryHash_t hash) {
 	Log.i(ID, "Searching server peer index for: %s", hash.data());
 	Index::PeerResults results = _indexer->request(hash);
@@ -177,7 +177,7 @@ bool deleteRndFile(string dir) {
 			return false;
 	}
 }
-
+/*--------- start change ----------*/
 bool editRndFile(string dir) {
 	while (true) {
 		for (const auto &entry : std::filesystem::directory_iterator(dir))
@@ -193,6 +193,8 @@ bool editRndFile(string dir) {
 			}
 	}
 }
+
+/*--------- end change ----------*/
 
 std::pair<Index::entryHash_t, float> getRandomListing() {
 	Log.i(ID, "Listing server file index");
@@ -238,7 +240,7 @@ int main(int argc, char *argv[]) {
 	string serverIP = config.server.ip;
 	uint16_t serverPort = config.server.port;
 	uint16_t clientPort = config.port + 100;
-
+/*--------- start change ----------*/
 	string originFolder = upFldrArg.getValue();
 
 	if (originFolder == "") {
@@ -322,14 +324,14 @@ int main(int argc, char *argv[]) {
 					c--;
 				}
 
-				std::this_thread::sleep_for(std::chrono::milliseconds(100));
+				//std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-				auto dirIter = std::filesystem::directory_iterator(remoteFolder);
-				int fileCount = std::count_if(begin(dirIter), end(dirIter), [](auto &entry) { return entry.is_regular_file(); });
+				//auto dirIter = std::filesystem::directory_iterator(remoteFolder);
+				//int fileCount = std::count_if(begin(dirIter), end(dirIter), [](auto &entry) { return entry.is_regular_file(); });
 
-				if (fileCount > 0 && !rndDel(rng)) {
-					deleteRndFile(remoteFolder);
-				}
+				//if (fileCount > 0 && !rndDel(rng)) {
+				//	deleteRndFile(remoteFolder);
+				//}
 
 				Log.i("Test", "Invalid counted: %f", icount);
 
@@ -367,7 +369,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	std::cout << std::endl << "DONE" << std::endl;
-
+/*--------- end change ----------*/
 	while (!std::filesystem::exists("finish")) {
 		std::this_thread::sleep_for(std::chrono::seconds(1));
 	}

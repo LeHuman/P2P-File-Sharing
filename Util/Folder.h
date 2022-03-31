@@ -52,9 +52,9 @@ namespace Util {
 		 * @param size The new size of the file
 		*/
 		void update(fs::file_time_type time, uintmax_t size);
-
+/*--------- start change ----------*/
 		void refresh();
-
+/*--------- end change ----------*/
 		/**
 		 * @brief Compute the hash of this file
 		 * @note Use the hash parameter to get the saved hash

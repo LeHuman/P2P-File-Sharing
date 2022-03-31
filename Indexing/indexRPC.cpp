@@ -92,7 +92,7 @@ namespace Index {
 		}
 		return PeerResults();
 	}
-
+/*--------- start change ----------*/
 	void invalidateEntry(uid_t uid, int32_t TTL, string hash, conn_t neighbor, unsigned short _port) {
 		try {
 			Log.i("Indexer", "Propagating query %s %llu %u", k_Invalidate.data(), uid, TTL);
@@ -222,7 +222,7 @@ namespace Index {
 				UIDs.erase(uid); // Potential to run query again? clear at a later time?
 				return invalidated.size() > 0;
 					  });
-
+/*--------- end change ----------*/
 			srv->bind(k_Search, [&](uid_t uid, int32_t TTL, string query, unsigned short _port) -> EntryResults {
 				Log.d("Indexer", "Request Search %d", TTL);
 				uidMux.lock();
@@ -285,7 +285,7 @@ namespace Index {
 				} else {
 					Log.i("Indexer", "TTL finished %llu", uid);
 				}
-
+/*--------- start change ----------*/
 				if (inital) {
 					EntryResults M;
 					splitResults(R, M);
@@ -297,6 +297,7 @@ namespace Index {
 				}
 
 				Log.d("Indexer", "Returning results");
+/*--------- end change ----------*/
 				UIDs.erase(uid); // Potential to run query again? clear at a later time?
 				return R;
 					  });
@@ -364,7 +365,7 @@ namespace Index {
 				} else {
 					Log.i("Indexer", "TTL finished %llu", uid);
 				}
-
+/*--------- start change ----------*/
 				if (inital) {
 					EntryResults M;
 					splitResults(R, M);
@@ -376,6 +377,7 @@ namespace Index {
 				}
 
 				Log.d("Indexer", "Returning results");
+/*--------- end change ----------*/
 				UIDs.erase(uid); // Potential to run query again? clear at a later time?
 				return R;
 					  });
@@ -453,7 +455,7 @@ namespace Index {
 			clt = nullptr;
 		}
 	}
-
+/*--------- start change ----------*/
 	void Indexer::pullingThread(time_t delay) {
 		try {
 			while (running) {
@@ -468,7 +470,7 @@ namespace Index {
 		}
 
 	}
-
+/*--------- end change ----------*/
 	void Indexer::start(time_t delay) {
 		running = true;
 		if (isServer) {
@@ -518,7 +520,7 @@ namespace Index {
 			return true;
 		return clt->get_connection_state() == rpc::client::connection_state::connected;
 	}
-
+/*--------- start change ----------*/
 	Index::origin_t Indexer::getOrigin(entryHash_t hash) {
 		if (isServer) {
 			return database->getOrigin(hash);
@@ -564,7 +566,7 @@ namespace Index {
 		}
 		return false;
 	}
-
+/*--------- end change ----------*/
 	uid_t Indexer::nextUID() { // https://stackoverflow.com/questions/19195183/how-to-properly-hash-the-custom-struct
 		std::hash<logic_t> lh;
 		std::hash<int> ih;

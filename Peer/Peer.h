@@ -37,7 +37,7 @@ class Peer {
 	Index::Indexer *indexer = nullptr;
 	Exchanger::Exchanger *exchanger = nullptr;
 	Console::Console _console;
-
+/*--------- start change ----------*/
 	void registerFile(std::string fileName, Index::entryHash_t hash, Index::origin_t origin);
 
 	void deregisterFile(Index::entryHash_t hash, bool master = false);
@@ -55,7 +55,7 @@ class Peer {
 	void downloadListener(Util::File file, Index::origin_t origin);
 
 	Index::origin_t originHandler(Index::entryHash_t hash);
-
+/*--------- end change ----------*/
 public:
 	~Peer();
 

@@ -58,7 +58,7 @@ namespace Exchanger {
 	void timeout(tcp::iostream &stream) {
 		stream.expires_after(std::chrono::seconds(5));
 	}
-
+/*--------- start change ----------*/
 	void fileInvalidate(const Index::Peer &peer, entryHash_t hash) {
 		try {
 			Log.d(iID, "Connecting to peer: %d", peer.id);
@@ -76,7 +76,7 @@ namespace Exchanger {
 			Log.e(sID, "Socket Server Exception: %s\n", e.what());
 		}
 	}
-
+/*--------- end change ----------*/
 	/**
 	 * @brief The state machine for the peer that is sending a file
 	 */
@@ -109,6 +109,7 @@ namespace Exchanger {
 			while (state != State::Disconnect) {
 				timeout(stream);
 				switch (state) {
+/*--------- start change ----------*/
 					case State::C_Connect:
 						stream.read(&status, 1);
 						switch (status) { // Get connection mode
@@ -134,6 +135,7 @@ namespace Exchanger {
 						}
 						timeout(stream);
 						break;
+/*--------- end change ----------*/
 					case State::S_Accept:
 						Log.d(sID, "Sending ID");
 						stream.write((char *)&id, sizeof(uint32_t));
@@ -148,6 +150,7 @@ namespace Exchanger {
 							state = State::Disconnect;
 							break;
 						}
+/*--------- start change ----------*/
 						Log.d(sID, "Hash size get: %i", hashLen);
 
 						stream.read(sBuf, hashLen);
@@ -191,11 +194,12 @@ namespace Exchanger {
 						}
 
 						stream.write((char *)&newTTR, sizeof(time_t));
-
+/*--------- end change ----------*/
 						timeout(stream);
 
 						if (status) { // File exists, open file and send size of file
 							file = it->second;
+/*--------- start change ----------*/
 							file.refresh(); // FIXME: file size returns zero sometimes? must be running in the middle of a origin server modification?
 							if (mode == Mode::InvalidateFile) {
 								stream.close();
@@ -204,10 +208,12 @@ namespace Exchanger {
 								state = State::Disconnect;
 								break;
 							}
+/*--------- end change ----------*/
 							fileOut = std::ifstream(file.path, std::ios_base::in | std::ios_base::binary); // TODO: ensure file has not changed, confirm localFiles matches details
 							fileSize = file.size;
 							Log.d(sID, "File found, sending size: %d", fileSize);
 							stream.write((char *)&fileSize, sizeof(uint64_t));
+/*--------- start change ----------*/
 
 							origin = originHandler(file.hash);
 
@@ -221,7 +227,7 @@ namespace Exchanger {
 							stream.write((char *)&port, sizeof(uint16_t)); // Send port of origin
 							stream.write((char *)&hashLen, sizeof(uint16_t)); // Send length of origin ip string
 							stream.write(origin.conn.ip.data(), hashLen); // Send origin ip string
-
+/*--------- end change ----------*/
 							state = State::Streaming;
 						} else { // File does not exist, disconnect
 							fileSize = 0;
@@ -236,6 +242,7 @@ namespace Exchanger {
 						timeout(stream);
 						if (status) { // Get confirmation from client
 							Log.d(sID, "Streaming");
+/*--------- start change ----------*/
 							while (totalWritten != fileSize && !fileOut.eof()) {
 								if (stream.error()) {
 									Log.e(sID, "Stream error: %s@%lld", hash.data(), totalWritten);
@@ -252,6 +259,7 @@ namespace Exchanger {
 									fileOut.seekg(totalWritten);
 									continue;
 								}
+/*--------- end change ----------*/
 								fileOut.read(sBuf, block_size);
 								written = fileOut.gcount();
 								totalWritten += written;
@@ -260,11 +268,13 @@ namespace Exchanger {
 									Log.d(sID, "Written %lld%%", (uint64_t)(lastWritten * 100));
 								}
 								stream.write(sBuf, written);
+/*--------- start change ----------*/
 								if (written > 0)
 									timeout(stream);
 							}
 							if (totalWritten != fileSize) {
 								Log.e(sID, "Sent filesize does not match: %lld", totalWritten);
+/*--------- end change ----------*/
 							}
 							Log.i(sID, "Finished streaming");
 						} else {
@@ -290,6 +300,7 @@ namespace Exchanger {
 		}
 	}
 
+/*--------- start change ----------*/
 	/**
 	 * @brief The state machine for the peer that is receiving a file
 	 */
@@ -438,6 +449,7 @@ namespace Exchanger {
 						downloadListener(file, origin);
 						TTRListener(hash, newTTR);
 						status = true;
+/*--------- end change ----------*/
 						state = State::Disconnect;
 						break;
 					default:
@@ -461,6 +473,7 @@ namespace Exchanger {
 		return status;
 	}
 
+/*--------- start change ----------*/
 	/**
 	 * @brief Threaded function that is constantly running, listening for peers to accept a socket connection to
 	 */
@@ -537,6 +550,7 @@ namespace Exchanger {
 		Log.d(ID, "stopped receiving peer requests");
 		running = true;
 	}
+/*--------- end change ----------*/
 
 	/**
 	 * @brief Threaded function that runs relevant socket functions
@@ -572,6 +586,7 @@ namespace Exchanger {
 		this->downloadPath = downloadPath;
 	}
 
+/*--------- start change ----------*/
 	Exchanger::Exchanger(uint32_t id, uint16_t listeningPort, string downloadPath, const std::function<void(Util::File, Index::origin_t)> &downloadListener, const std::function<void(Util::File)> &invalidationListener, std::function<Index::origin_t(entryHash_t)> originHandler, std::function<void(Index::entryHash_t, time_t)> TTRListener) : downloadListener { downloadListener }, invalidationListener { invalidationListener }, originHandler { originHandler }, TTRListener { TTRListener } {
 		setDownloadPath(downloadPath);
 		io_context = new asio::io_context(thread::hardware_concurrency());
@@ -622,3 +637,4 @@ namespace Exchanger {
 		_TTR = TTR;
 	}
 }
+/*--------- end change ----------*/

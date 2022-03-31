@@ -28,6 +28,7 @@ int main(int argc, char *argv[]) {
 
 		TCLAP::ValueArg<uint32_t> idArg("i", "identity", "Unique ID identifying this client", false, 0, "int", cmd);
 		TCLAP::ValueArg<std::string> confArg("c", "configFile", "The config file to use", false, "test_config.json", "filePath", cmd);
+/*--------- start change ----------*/
 		TCLAP::ValueArg<std::string> upFldrArg("u", "uploadFolder", "The local folder files should be uploaded from", false, "", "directory", cmd);
 		TCLAP::ValueArg<std::string> dnFldrArg("d", "downloadFolder", "The local folder files should be downloaded to", false, "", "directory", cmd);
 		TCLAP::ValueArg<time_t> ttrArg("r", "ttr", "Time To Refresh (TTR) in seconds", false, 5, "int", cmd);
@@ -36,6 +37,7 @@ int main(int argc, char *argv[]) {
 		TCLAP::SwitchArg pullingArg("l", "pulling", "enable pulling of invalidation calls", cmd);
 
 		cmd.parse(argc, argv);
+
 
 		bool pushing = pushingArg.getValue();
 		bool pulling = pullingArg.getValue();
@@ -86,6 +88,7 @@ int main(int argc, char *argv[]) {
 
 		if (config.isSuper) { // Create server if this is a super peer
 			s = new Index::Indexer(config.server.port, config.totalSupers, pushing, pulling, config.all2all);
+/*--------- end change ----------*/
 			for (Index::conn_t conn : config.neighbors) {
 				if (conn != config.server) { // Ensure we don't reference ourselves
 					s->addNeighboor(conn);

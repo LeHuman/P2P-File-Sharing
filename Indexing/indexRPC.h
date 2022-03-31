@@ -117,7 +117,7 @@ namespace Index {
 		 * @brief Stop the server/client connection
 		*/
 		void stop();
-
+/*--------- start change ----------*/
 		/**
 		 * @brief Get the peer connection info
 		 * @return peer conn info
@@ -165,7 +165,7 @@ namespace Index {
 		 * @return Sucessfully invalidated
 		*/
 		bool invalidate(entryHash_t hash);
-
+/*--------- end change ----------*/
 		/**
 		 * @brief Search index server for files that contain query
 		 * @param query search query

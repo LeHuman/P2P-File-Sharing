@@ -101,6 +101,8 @@ namespace Exchanger {
 
 		void setDownloadPath(string downloadPath);
 
+/*--------- start change ----------*/
+
 		/**
 		 * @brief download a file from a peer
 		 * @param results The results from an index server
@@ -132,5 +134,7 @@ namespace Exchanger {
 		void updateLocalFile(Util::File file);
 
 		void setDefaultTTR(time_t TTR);
+
+/*--------- end change ----------*/
 	};
 }
