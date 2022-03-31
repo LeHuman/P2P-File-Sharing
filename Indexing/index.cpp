@@ -284,8 +284,6 @@ namespace Index {
 	void combineResults(EntryResults &origins, EntryResults &remotes, EntryResults &results, bool leftovers) {
 		for (Entry::searchEntry &o : origins) {
 			EntryResults::iterator mit;
-			o.icount = 0;
-
 			int total = 0;
 
 			for (mit = remotes.begin(); mit != remotes.end(); ) {

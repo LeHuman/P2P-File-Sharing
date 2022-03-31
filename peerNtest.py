@@ -1,6 +1,7 @@
 import glob
 from os import chdir
 import os
+import sys
 import subprocess
 import shutil
 from time import sleep
@@ -80,49 +81,78 @@ def runTest(maxID, active, pushORPull, all2all, delay):
 def main():
     """Main Function"""
 
-    shutil.copyfile("C:/Github/P2P-File-Sharing/out/build/x64-Debug/TestPeer/TestPeer.exe", "TestPeer.exe")
+    shutil.copyfile("C:/Github/P2P-File-Sharing/out/build/x64-Release/TestPeer/TestPeer.exe", "TestPeer.exe")
 
     peers = []
     avgs = []
 
     clean()
+    
+    x = 27-6
 
-    for i in range(27, -1, -1):
-        runTest(28, 27 - i, True, True, 0)
-        peers.append(28 - i)
-        avgs.append(readCSVs())
-        clean()
-        pd.DataFrame({"Active Peers": peers, "Avg invalid": avgs}).to_excel("Average Runtimes Pushing All2All.xlsx")
-
-    peers = []
-    avgs = []
-
-    for i in range(27, -1, -1):
-        runTest(28, 27 - i, True, False, 0)
-        peers.append(28 - i)
-        avgs.append(readCSVs())
-        clean()
-        pd.DataFrame({"Active Peers": peers, "Avg invalid": avgs}).to_excel("Average Runtimes Pushing Linear.xlsx")
-
-    for delay in [5,10,30]:
-        peers = []
-        avgs = []
-        for i in range(27, -1, -1):
-            runTest(28, 27 - i, False, True, delay)
-            peers.append(28 - i)
-            avgs.append(readCSVs())
-            clean()
-            pd.DataFrame({"Active Peers": peers, "Avg invalid": avgs}).to_excel(f"Average Runtimes Pulling All2All {delay}.xlsx")
-
-    for delay in [5,10,30]:
-        peers = []
-        avgs = []
-        for i in range(27, -1, -1):
-            runTest(28, 27 - i, False, False, delay)
-            peers.append(28 - i)
-            avgs.append(readCSVs())
-            clean()
-            pd.DataFrame({"Active Peers": peers, "Avg invalid": avgs}).to_excel("Average Runtimes Pulling Linear {delay}.xlsx")
+    match int(sys.argv[1]):
+        case 0:
+            for i in range(27, x, -1):
+                runTest(28, 27 - i, True, True, 0)
+                peers.append(28 - i)
+                avgs.append(readCSVs())
+                clean()
+                pd.DataFrame({"Active Peers": peers, "Avg invalid": avgs}).to_excel("Average Runtimes Pushing All2All.xlsx")
+        case 1:
+            for i in range(27, x, -1):
+                runTest(28, 27 - i, True, False, 0)
+                peers.append(28 - i)
+                avgs.append(readCSVs())
+                clean()
+                pd.DataFrame({"Active Peers": peers, "Avg invalid": avgs}).to_excel("Average Runtimes Pushing Linear.xlsx")
+        case 2:
+            delay = 5
+            for i in range(27, x, -1):
+                runTest(28, 27 - i, False, True, delay)
+                peers.append(28 - i)
+                avgs.append(readCSVs())
+                clean()
+                pd.DataFrame({"Active Peers": peers, "Avg invalid": avgs}).to_excel(f"Average Runtimes Pulling All2All {delay}.xlsx")
+        case 3:
+            delay = 15
+            for i in range(27, x, -1):
+                runTest(28, 27 - i, False, True, delay)
+                peers.append(28 - i)
+                avgs.append(readCSVs())
+                clean()
+                pd.DataFrame({"Active Peers": peers, "Avg invalid": avgs}).to_excel(f"Average Runtimes Pulling All2All {delay}.xlsx")
+        case 4:
+            delay = 30
+            for i in range(27, x, -1):
+                runTest(28, 27 - i, False, True, delay)
+                peers.append(28 - i)
+                avgs.append(readCSVs())
+                clean()
+                pd.DataFrame({"Active Peers": peers, "Avg invalid": avgs}).to_excel(f"Average Runtimes Pulling All2All {delay}.xlsx")
+        case 5:
+            delay = 5
+            for i in range(27, x, -1):
+                runTest(28, 27 - i, False, False, delay)
+                peers.append(28 - i)
+                avgs.append(readCSVs())
+                clean()
+                pd.DataFrame({"Active Peers": peers, "Avg invalid": avgs}).to_excel(f"Average Runtimes Pulling Linear {delay}.xlsx")
+        case 6:
+            delay = 15
+            for i in range(27, x, -1):
+                runTest(28, 27 - i, False, False, delay)
+                peers.append(28 - i)
+                avgs.append(readCSVs())
+                clean()
+                pd.DataFrame({"Active Peers": peers, "Avg invalid": avgs}).to_excel(f"Average Runtimes Pulling Linear {delay}.xlsx")
+        case 7:
+            delay = 30
+            for i in range(27, x, -1):
+                runTest(28, 27 - i, False, False, delay)
+                peers.append(28 - i)
+                avgs.append(readCSVs())
+                clean()
+                pd.DataFrame({"Active Peers": peers, "Avg invalid": avgs}).to_excel(f"Average Runtimes Pulling Linear {delay}.xlsx")
 
 
 main()

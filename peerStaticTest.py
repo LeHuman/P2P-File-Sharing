@@ -25,6 +25,9 @@ def runTest(runs, mode, all2all, delay):
 
 def main():
     """Main Function"""
+    
+    shutil.copyfile("C:/Github/P2P-File-Sharing/out/build/x64-Debug/Client/Client.exe", "Client.exe")
+    
     runTest(int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4])) # 29 [1,2,3] [0,1] x>0
 
 main()

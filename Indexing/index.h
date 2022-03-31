@@ -152,6 +152,7 @@ namespace Index {
 				// this->operator==(rhs) &&
 				// if (this->origin == rhs.origin) {
 				peers += rhs.peers;
+				icount += rhs.icount;
 				if (rhs.firstIndexed < firstIndexed && rhs.firstIndexed > 0) {
 					firstIndexed = rhs.firstIndexed;
 				}

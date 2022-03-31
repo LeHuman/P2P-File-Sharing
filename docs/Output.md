@@ -22,7 +22,7 @@ header-includes: |
 **Isaias Rivera**  
 **A20442116**
 
-# P2P File Sharing - Super-peers - Output
+# P2P File Sharing - Consistency - Output
 
 This is the output of two super-peers and two leaf-nodes running locally on a Windows machine.
 Some of the hashes get cutoff in this document but they are unique enough that the first part of each hash is sufficient.
@@ -37,64 +37,111 @@ Notes:
 ## Super-peer 0
 
 ```
-$ .\Client.exe -i 0 -c test_config_simple.json
+$ .\Client.exe -i 0 -s
 [Indexer] INFO   : Running Server
 [Indexer] INFO   : Running Client
 [Indexer] DEBUG  : Connecting to index server at: 127.0.0.1:47900
-[Indexer] INFO   : Server pinged! 0.083000ms
+[Indexer] INFO   : Server pinged! 0.137000ms
 [Exchanger] DEBUG  : Listening to port: 48900
 [Console]        : Console start!
- [File] DEBUG  : Hashing file: dup.txt
-Client-0 > [Folder] DEBUG  : File created: dup.txt
+ [File] DEBUG  : Hashing file: file0.txt
+Client-0 > [Folder] DEBUG  : File created: file0.txt
+[Registry] INFO   : New Origin
+        ID: 0
+        name: file0.txt
+        hash: 56F3FD843F7AE959A8409E0AE7C067A0E862A6FAA7A22BAD147EE90EE5992BD7
+
 [Registry]        : New
         ID: 0
-        name: dup.txt
-        hash: 395A71419DADACF6653548C449A207536831AF86ECF265E2067E0377A14A447F
+        name: file0.txt
+        hash: 56F3FD843F7AE959A8409E0AE7C067A0E862A6FAA7A22BAD147EE90EE5992BD7
 
-[Peer] INFO   : Registered hash: dup.txt
+[Peer] INFO   : Registered hash: file0.txt
+[Registry] INFO   : New Origin
+        ID: 2
+        name: file2.txt
+        hash: 3377870DFEAAA7ADF79A374D2702A3FDB13E5E5EA0DD8AA95A802AD39044A92F
+
 [Registry]        : New
         ID: 2
-        name: 2.txt
-        hash: 8C8C5354325CFD52914A7B36D8A28695F5DEDCBBABEE7C13BE2E02B0CAEF5A6D
+        name: file2.txt
+        hash: 3377870DFEAAA7ADF79A374D2702A3FDB13E5E5EA0DD8AA95A802AD39044A92F
 
-[Indexer] DEBUG  : Request Listing 1
+
+ Client-0 > [Indexer] DEBUG  : Request Listing 1
 [List]        : Listing all files entries
-[Indexer] DEBUG  : TTL finished 797849837586022540
+[Indexer] INFO   : TTL finished 797849837586022540
 [Indexer] DEBUG  : Returning results
 [Indexer] DEBUG  : Request File 1
-[Request]        : Searching for hash: 395A71419DADACF6653548C449A207536831AF86ECF265E2067E0377A14A447F
+[Request]        : Searching for hash: 56F3FD843F7AE959A8409E0AE7C067A0E862A6FAA7A22BAD147EE90EE5992BD7
 [Request] INFO   : Entry found
-        name: dup.txt
-        hash: 395A71419DADACF6653548C449A207536831AF86ECF265E2067E0377A14A447F
-[Indexer] DEBUG  : Request Search 1
-[Search]        : Searching for query: dup
-
- Client-0 > list
-[indexRPCParse] INFO   : Listing server file index
-[Indexer] DEBUG  : Request Listing -1
-[List]        : Listing all files entries
-[Indexer] DEBUG  : Propagating query list 7721487775885090099 1
+        name: file0.txt
+        hash: 56F3FD843F7AE959A8409E0AE7C067A0E862A6FAA7A22BAD147EE90EE5992BD7
+[Exchanger] DEBUG  : p2p conn: 127.0.0.1:58177
+[Exchanger Server] DEBUG  : P2PFile
+[Exchanger Server] DEBUG  : Sending ID
+[Exchanger Server] DEBUG  : Hash size get: 64
+[Exchanger Server] DEBUG  : Hash get: 56F3FD843F7AE959A8409E0AE7C067A0E862A6FAA7A22BAD147EE90EE5992BD7
+[Exchanger Server] DEBUG  : File found, sending size: 5
+[Exchanger Server] DEBUG  : Waiting to stream
+[Exchanger Server] DEBUG  : Streaming
+[Exchanger Server] DEBUG  : Written 100%
+[Exchanger Server] INFO   : Finished streaming
+[Indexer] DEBUG  : Request Search -1
+[Search]        : Searching for query: file
+[Indexer] INFO   : Propagating query search 12328414912905561117 1
 [Indexer] DEBUG  : Returning results
-Hash: 76BD6080BE28BDF33FA030A29A6D65849C2684F2F93DC3A41D3668801DF29FB1
-Added on 05/03/2022 22:59:31
-        Name: 3.txt
-        Peers: 1
-Hash: 395A71419DADACF6653548C449A207536831AF86ECF265E2067E0377A14A447F
-Added on 05/03/2022 22:59:28
-        Name: dup.txt
-        Peers: 3
-Hash: 8C8C5354325CFD52914A7B36D8A28695F5DEDCBBABEE7C13BE2E02B0CAEF5A6D
-Added on 05/03/2022 22:59:30
-        Name: 2.txt
-        Peers: 1
- Client-0 > [Indexer] DEBUG  : Request File 1
-[Request]        : Searching for hash: 8C8C5354325CFD52914A7B36D8A28695F5DEDCBBABEE7C13BE2E02B0CAEF5A6D
-[Request] INFO   : Entry found
-        name: 2.txt
-        hash: 8C8C5354325CFD52914A7B36D8A28695F5DEDCBBABEE7C13BE2E02B0CAEF5A6D
+[File] DEBUG  : Hashing file: file0.txt
+[Folder] DEBUG  : File modified: file0.txt : 15
+[Deregister]        : Erase entry
+        name: file0.txt
+        hash: 56F3FD843F7AE959A8409E0AE7C067A0E862A6FAA7A22BAD147EE90EE5992BD7
+[Deregister]        : Erase peer
+        ID: 0
+[Deregister]        : New
+        ID: 0
+        name: file0.txt
+        hash: 56F3FD843F7AE959A8409E0AE7C067A0E862A6FAA7A22BAD147EE90EE5992BD7
+
+[Peer] INFO   : Deregistered hash: 56F3FD843F7AE959A8409E0AE7C067A0E862A6FAA7A22BAD147EE90EE5992BD7
+[Registry] INFO   : New Origin
+        ID: 0
+        name: file0.txt
+        hash: 6AAA22848C60483715FA71B87BFB3DE4A9C2C14A6DD8CAECDE650D386AEBD051
+
+[Registry]        : New
+        ID: 0
+        name: file0.txt
+        hash: 6AAA22848C60483715FA71B87BFB3DE4A9C2C14A6DD8CAECDE650D386AEBD051
+
+[Peer] INFO   : Registered hash: file0.txt
+[originFolderListener] DEBUG  : Propagating invalidation
+[Indexer] DEBUG  : Request Invalidation -1
+[Invalidate] WARNING: Entry not found: 56F3FD843F7AE959A8409E0AE7C067A0E862A6FAA7A22BAD147EE90EE5992BD7
+[Invalidate] ERROR  : Entry was not found or is invalid
+        hash: 56F3FD843F7AE959A8409E0AE7C067A0E862A6FAA7A22BAD147EE90EE5992BD7
+[Indexer] INFO   : Pushing invalidation: 56F3FD843F7AE959A8409E0AE7C067A0E862A6FAA7A22BAD147EE90EE5992BD7
+[Indexer] INFO   : Propagating query invalidate 7721487775885090099 1
+[Peer] WARNING: Unable to invalidate hash or no peers to locally invalidate: 56F3FD843F7AE959A8409E0AE7C067A0E862A6FAA7A22BAD147EE90EE5992BD7
+[Exchanger] DEBUG  : p2p conn: 127.0.0.1:58202
+[Exchanger Server] DEBUG  : P2PFileUpdate
+[Exchanger Server] DEBUG  : Sending ID
+[Exchanger Server] DEBUG  : Hash size get: 64
+[Exchanger Server] DEBUG  : Hash get: 56F3FD843F7AE959A8409E0AE7C067A0E862A6FAA7A22BAD147EE90EE5992BD7
+[Exchanger Server] DEBUG  : Name get: file0.txt
+[Exchanger Server] DEBUG  : File found, sending size: 15
+[Exchanger Server] DEBUG  : Waiting to stream
+[Exchanger Server] DEBUG  : Streaming
+[Exchanger Server] DEBUG  : Written 100%
+[Exchanger Server] INFO   : Finished streaming
+[Indexer] DEBUG  : Request Search 1
+[Search]        : Searching for query: file0
+[Indexer] INFO   : TTL finished 14638757213955201442
+[Indexer] DEBUG  : Returning results
 
  Client-0 > q
 [Console] INFO   : Exiting
+[Folder] DEBUG  : Stopped watching path for changes
 [Folder] DEBUG  : Stopped watching path for changes
 [Exchanger] DEBUG  : stopped receiving peer requests
 [Indexer] INFO   : Stopping Client
@@ -103,83 +150,96 @@ Added on 05/03/2022 22:59:30
 ## Super-peer 1
 
 ```
-$ .\Client.exe -i 1 -c test_config_simple.json
+$ .\Client.exe -i 1 -s
 [Indexer] INFO   : Running Server
 [Indexer] INFO   : Running Client
 [Indexer] DEBUG  : Connecting to index server at: 127.0.0.1:47901
-[Indexer] INFO   : Server pinged! 0.095000ms
+[Indexer] INFO   : Server pinged! 0.129000ms
 [Exchanger] DEBUG  : Listening to port: 48901
 [Console]        : Console start!
- [FileClient-1 > ] DEBUG  : Hashing file: dup.txt
-[Folder] DEBUG  : File created: dup.txt
+ Client-1 > [File] DEBUG  : Hashing file: file1.txt
+[Folder] DEBUG  : File created: file1.txt
+[Registry] INFO   : New Origin
+        ID: 1
+        name: file1.txt
+        hash: C147EFCFC2D7EA666A9E4F5187B115C90903F0FC896A56DF9A6EF5D8F3FC9F31
+
 [Registry]        : New
         ID: 1
-        name: dup.txt
-        hash: 395A71419DADACF6653548C449A207536831AF86ECF265E2067E0377A14A447F
+        name: file1.txt
+        hash: C147EFCFC2D7EA666A9E4F5187B115C90903F0FC896A56DF9A6EF5D8F3FC9F31
 
-[Peer] INFO   : Registered hash: dup.txt
+[Peer] INFO   : Registered hash: file1.txt
+[Registry] INFO   : New Origin
+        ID: 3
+        name: file3.txt
+        hash: 6F3FEF6DC51C7996A74992B70D0C35F328ED909A5E07646CF0BAB3383C95BB02
+
 [Registry]        : New
         ID: 3
-        name: 3.txt
-        hash: 76BD6080BE28BDF33FA030A29A6D65849C2684F2F93DC3A41D3668801DF29FB1
+        name: file3.txt
+        hash: 6F3FEF6DC51C7996A74992B70D0C35F328ED909A5E07646CF0BAB3383C95BB02
 
-[Indexer] DEBUG  : Request Listing -1
+
+ Client-1 > [Indexer] DEBUG  : Request Listing -1
 [List]        : Listing all files entries
-[Indexer] DEBUG  : Propagating query list 797849837586022540 1
+[Indexer] INFO   : Propagating query list 797849837586022540 1
 [Indexer] DEBUG  : Returning results
 [Indexer] DEBUG  : Request File -1
-[Request]        : Searching for hash: 395A71419DADACF6653548C449A207536831AF86ECF265E2067E0377A14A447F
-[Request] INFO   : Entry found
-        name: dup.txt
-        hash: 395A71419DADACF6653548C449A207536831AF86ECF265E2067E0377A14A447F
-[Indexer] DEBUG  : Propagating query request 3498333107492499847 1
-[Exchanger] DEBUG  : p2p conn: 127.0.0.1:59862
-[Exchanger Server] DEBUG  : Sending ID
-[Exchanger Server] DEBUG  : Reading hash size
-[Exchanger Server] DEBUG  : Hash get: 395A71419DADACF6653548C449A207536831AF86ECF265E2067E0377A14A447F
-[Exchanger Server] DEBUG  : File found, sending size: 24
-[Exchanger Server] DEBUG  : Waiting to stream
-[Exchanger Server] DEBUG  : Streaming
-[Exchanger Server] DEBUG  : Written 100%
-[Exchanger Server] INFO   : Finished streaming
+[Request]        : Searching for hash: 56F3FD843F7AE959A8409E0AE7C067A0E862A6FAA7A22BAD147EE90EE5992BD7
+[Request] WARNING: No entries found with hash: 56F3FD843F7AE959A8409E0AE7C067A0E862A6FAA7A22BAD147EE90EE5992BD7
+[Indexer] INFO   : Propagating query request 3498333107492499847 1
 [Registry]        : New
         ID: 3
-        name: dup.txt
-        hash: 395A71419DADACF6653548C449A207536831AF86ECF265E2067E0377A14A447F
+        name: file0.txt
+        hash: 56F3FD843F7AE959A8409E0AE7C067A0E862A6FAA7A22BAD147EE90EE5992BD7
 
+[Entry] DEBUG  : TTR Updated: file0.txt:1648694786
+[Indexer] DEBUG  : Request Search 1
+[Search]        : Searching for query: file
+[Indexer] INFO   : TTL finished 12328414912905561117
+[Indexer] DEBUG  : Returning results
+[Indexer] DEBUG  : Request Invalidation 1
+[Invalidate]        : Invalidate
+        name: file0.txt
+        hash: 56F3FD843F7AE959A8409E0AE7C067A0E862A6FAA7A22BAD147EE90EE5992BD7
+
+[Indexer] INFO   : Pushing invalidation: 56F3FD843F7AE959A8409E0AE7C067A0E862A6FAA7A22BAD147EE90EE5992BD7
+[Exchanger Invalidation] DEBUG  : Connecting to peer: 3
+[Exchanger Invalidation] DEBUG  : Sending mode
+[Exchanger Invalidation] DEBUG  : sending hash: 56F3FD843F7AE959A8409E0AE7C067A0E862A6FAA7A22BAD147EE90EE5992BD7
+[Indexer] INFO   : TTL finished 7721487775885090099
+[Registry]        : New
+        ID: 3
+        name: file0.txt
+        hash: 6AAA22848C60483715FA71B87BFB3DE4A9C2C14A6DD8CAECDE650D386AEBD051
+
+[Entry] DEBUG  : TTR Updated: file0.txt:-1
+[Deregister]        : Erase entry
+        name: file0.txt
+        hash: 56F3FD843F7AE959A8409E0AE7C067A0E862A6FAA7A22BAD147EE90EE5992BD7
+[Deregister]        : New
+        ID: 3
+        name: file0.txt
+        hash: 56F3FD843F7AE959A8409E0AE7C067A0E862A6FAA7A22BAD147EE90EE5992BD7
+
+[Registry] WARNING: Peer and Entry already refrence each other
+        ID: 3
+        hash: 6AAA22848C60483715FA71B87BFB3DE4A9C2C14A6DD8CAECDE650D386AEBD051
+
+ Client-1 > search file0
+[indexRPCParse] INFO   : Searching server file index for: file0
 [Indexer] DEBUG  : Request Search -1
-[Search]        : Searching for query: dup
-[Indexer] DEBUG  : Propagating query search 14412114876339529566 1
-[Indexer] DEBUG  : Request Listing 1
-[List]        : Listing all files entries
-[Indexer] DEBUG  : TTL finished 7721487775885090099
+[Search]        : Searching for query: file0
+[Indexer] INFO   : Propagating query search 14638757213955201442 1
 [Indexer] DEBUG  : Returning results
-
- Client-1 > request 8C8C5354325CFD52914A7B36D8A28695F5DEDCBBABEE7C13BE2E02B0CAEF5A6D
-[indexRPCParse] INFO   : Searching server peer index for: 8C8C5354325CFD52914A7B36D8A28695F5DEDCBBABEE7C13BE2E02B0CAEF5A6D
-[Indexer] DEBUG  : Request File -1
-[Request]        : Searching for hash: 8C8C5354325CFD52914A7B36D8A28695F5DEDCBBABEE7C13BE2E02B0CAEF5A6D
-[Request] WARNING: No entries found with hash: 8C8C5354325CFD52914A7B36D8A28695F5DEDCBBABEE7C13BE2E02B0CAEF5A6D
-[Indexer] DEBUG  : Propagating query request 14638757213955201442 1
-[2] 127.0.0.1:48902
- Client-1 > [Exchanger] DEBUG  : Connecting to peer: 2
-[Exchanger Client] DEBUG  : Receiving server ID
-[Exchanger Client] DEBUG  : ID match, sending hash: 8C8C5354325CFD52914A7B36D8A28695F5DEDCBBABEE7C13BE2E02B0CAEF5A6D
-[Exchanger Client] DEBUG  : Receiving file size
-[Exchanger Client] DEBUG  : Valid filesize, notifying server: 29
-[Exchanger Client] DEBUG  : Streaming
-[Exchanger Client] INFO   : Finished streaming
-[File] DEBUG  : Hashing file: 2.txt
-[Folder] DEBUG  : File created: 2.txt
-[Registry]        : New
-        ID: 1
-        name: 2.txt
-        hash: 8C8C5354325CFD52914A7B36D8A28695F5DEDCBBABEE7C13BE2E02B0CAEF5A6D
-
-[Peer] INFO   : Registered hash: 2.txt
-
+Hash: 6AAA22848C60483715FA71B87BFB3DE4A9C2C14A6DD8CAECDE650D386AEBD051
+Added on 30/03/2022 21:50:29
+        Name: file0.txt
+        Peers: 2
  Client-1 > q
 [Console] INFO   : Exiting
+[Folder] DEBUG  : Stopped watching path for changes
 [Folder] DEBUG  : Stopped watching path for changes
 [Exchanger] DEBUG  : stopped receiving peer requests
 [Indexer] INFO   : Stopping Client
@@ -188,27 +248,37 @@ $ .\Client.exe -i 1 -c test_config_simple.json
 ## Leaf-node 2
 
 ```
-$ .\Client.exe -i 2 -c test_config_simple.json
+$ .\Client.exe -i 2 -s
 [Indexer] INFO   : Running Client
 [Indexer] DEBUG  : Connecting to index server at: 127.0.0.1:47900
-[Indexer] INFO   : Server pinged! 0.083000ms
+[Indexer] INFO   : Server pinged! 0.156000ms
 [Exchanger] DEBUG  : Listening to port: 48902
 [Console]        : Console start!
- [Client-2 > File] DEBUG  : Hashing file: 2.txt
-[Folder] DEBUG  : File created: 2.txt
-[Peer] INFO   : Registered hash: 2.txt
-[Exchanger] DEBUG  : p2p conn: 127.0.0.1:59866
-[Exchanger Server] DEBUG  : Sending ID
-[Exchanger Server] DEBUG  : Reading hash size
-[Exchanger Server] DEBUG  : Hash get: 8C8C5354325CFD52914A7B36D8A28695F5DEDCBBABEE7C13BE2E02B0CAEF5A6D
-[Exchanger Server] DEBUG  : File found, sending size: 29
-[Exchanger Server] DEBUG  : Waiting to stream
-[Exchanger Server] DEBUG  : Streaming
-[Exchanger Server] DEBUG  : Written 100%
-[Exchanger Server] INFO   : Finished streaming
+ Client-2[File > ] DEBUG  : Hashing file: file2.txt
+[Folder] DEBUG  : File created: file2.txt
+[Peer] INFO   : Registered hash: file2.txt
 
+ Client-2 > search file
+[indexRPCParse] INFO   : Searching server file index for: file
+Hash: 6F3FEF6DC51C7996A74992B70D0C35F328ED909A5E07646CF0BAB3383C95BB02
+Added on 30/03/2022 21:43:41
+        Name: file3.txt
+        Peers: 1
+Hash: C147EFCFC2D7EA666A9E4F5187B115C90903F0FC896A56DF9A6EF5D8F3FC9F31
+Added on 30/03/2022 21:43:40
+        Name: file1.txt
+        Peers: 1
+Hash: 56F3FD843F7AE959A8409E0AE7C067A0E862A6FAA7A22BAD147EE90EE5992BD7
+Added on 30/03/2022 21:43:40
+        Name: file0.txt
+        Peers: 2
+Hash: 3377870DFEAAA7ADF79A374D2702A3FDB13E5E5EA0DD8AA95A802AD39044A92F
+Added on 30/03/2022 21:43:40
+        Name: file2.txt
+        Peers: 1
  Client-2 > q
 [Console] INFO   : Exiting
+[Folder] DEBUG  : Stopped watching path for changes
 [Folder] DEBUG  : Stopped watching path for changes
 [Exchanger] DEBUG  : stopped receiving peer requests
 [Indexer] INFO   : Stopping Client
@@ -217,53 +287,77 @@ $ .\Client.exe -i 2 -c test_config_simple.json
 ## Leaf-node 3
 
 ```
-$ .\Client.exe -i 3 -c test_config_simple.json
+$ .\Client.exe -i 3 -s
 [Indexer] INFO   : Running Client
 [Indexer] DEBUG  : Connecting to index server at: 127.0.0.1:47901
-[Indexer] INFO   : Server pinged! 0.089000ms
+[Indexer] INFO   : Server pinged! 0.136000ms
 [Exchanger] DEBUG  : Listening to port: 48903
 [Console]        : Console start!
-[File] DEBUG  :  Client-3 > Hashing file: 3.txt
-[Folder] DEBUG  : File created: 3.txt
-[Peer] INFO   : Registered hash: 3.txt
+ Client-3[ > File] DEBUG  : Hashing file: file3.txt
+[Folder] DEBUG  : File created: file3.txt
+[Peer] INFO   : Registered hash: file3.txt
 
  Client-3 > list
 [indexRPCParse] INFO   : Listing server file index
-Hash: 8C8C5354325CFD52914A7B36D8A28695F5DEDCBBABEE7C13BE2E02B0CAEF5A6D
-Added on 05/03/2022 22:59:30
-        Name: 2.txt
+Hash: 56F3FD843F7AE959A8409E0AE7C067A0E862A6FAA7A22BAD147EE90EE5992BD7
+Added on 30/03/2022 21:43:40
+        Name: file0.txt
         Peers: 1
-Hash: 395A71419DADACF6653548C449A207536831AF86ECF265E2067E0377A14A447F
-Added on 05/03/2022 22:59:28
-        Name: dup.txt
-        Peers: 2
-Hash: 76BD6080BE28BDF33FA030A29A6D65849C2684F2F93DC3A41D3668801DF29FB1
-Added on 05/03/2022 22:59:31
-        Name: 3.txt
+Hash: 3377870DFEAAA7ADF79A374D2702A3FDB13E5E5EA0DD8AA95A802AD39044A92F
+Added on 30/03/2022 21:43:40
+        Name: file2.txt
         Peers: 1
- Client-3 > request 395A71419DADACF6653548C449A207536831AF86ECF265E2067E0377A14A447F
-[indexRPCParse] INFO   : Searching server peer index for: 395A71419DADACF6653548C449A207536831AF86ECF265E2067E0377A14A447F
-[1] 127.0.0.1:48901
+Hash: 6F3FEF6DC51C7996A74992B70D0C35F328ED909A5E07646CF0BAB3383C95BB02
+Added on 30/03/2022 21:43:41
+        Name: file3.txt
+        Peers: 1
+Hash: C147EFCFC2D7EA666A9E4F5187B115C90903F0FC896A56DF9A6EF5D8F3FC9F31
+Added on 30/03/2022 21:43:40
+        Name: file1.txt
+        Peers: 1
+ Client-3 > request 56F3FD843F7AE959A8409E0AE7C067A0E862A6FAA7A22BAD147EE90EE5992BD7
+[indexRPCParse] INFO   : Searching server peer index for: 56F3FD843F7AE959A8409E0AE7C067A0E862A6FAA7A22BAD147EE90EE5992BD7
 [0] 127.0.0.1:48900
- Client-3 > [Exchanger] DEBUG  : Connecting to peer: 1
+ Client-3 > [Exchanger] DEBUG  : Connecting to peer: 0:127.0.0.1:48900
+[Exchanger Client] DEBUG  : Sending mode
 [Exchanger Client] DEBUG  : Receiving server ID
-[Exchanger Client] DEBUG  : ID match, sending hash: 395A71419DADACF6653548C449A207536831AF86ECF265E2067E0377A14A447F
-[Exchanger Client] DEBUG  : Receiving file size
-[Exchanger Client] DEBUG  : Valid filesize, notifying server: 24
+[Exchanger Client] DEBUG  : ID match, sending hash: 56F3FD843F7AE959A8409E0AE7C067A0E862A6FAA7A22BAD147EE90EE5992BD7
+[Exchanger Client] DEBUG  : Receiving file size and origin
+[Exchanger Client] DEBUG  : Origin get: 0:127.0.0.1:48900:0
+[Exchanger Client] DEBUG  : Valid filesize, notifying server: 5
 [Exchanger Client] DEBUG  : Streaming
-[Exchanger Client] INFO   : Finished streaming
-[File] DEBUG  : Hashing file: dup.txt
-[Folder] DEBUG  : File created: dup.txt
-[Peer] INFO   : Registered hash: dup.txt
+[Exchanger Client] INFO   : Finished streaming, storing local file
+[File] DEBUG  : Hashing file: file0.txt
+[Exchanger Client] DEBUG  : Running finished listener for hash: 56F3FD843F7AE959A8409E0AE7C067A0E862A6FAA7A22BAD147EE90EE5992BD7
+[Peer] INFO   : Registered hash: file0.txt
+[File] DEBUG  : Hashing file: file0.txt
+[Folder] DEBUG  : File created: file0.txt
+[Exchanger] DEBUG  : p2p conn: 127.0.0.1:58201
+[Exchanger Server] DEBUG  : InvalidateFile
+[Exchanger Server] DEBUG  : Hash size get: 64
+[Exchanger Server] DEBUG  : Hash get: 56F3FD843F7AE959A8409E0AE7C067A0E862A6FAA7A22BAD147EE90EE5992BD7
+[Exchanger Server] DEBUG  : Running invalidation listener for hash: 56F3FD843F7AE959A8409E0AE7C067A0E862A6FAA7A22BAD147EE90EE5992BD7
+[Invalidator] DEBUG  : Origin server to connect: 127.0.0.1:48900
+[Exchanger] DEBUG  : Connecting to peer: 0:127.0.0.1:48900
+[Exchanger Client] DEBUG  : Sending mode
+[Exchanger Client] DEBUG  : Receiving server ID
+[Exchanger Client] DEBUG  : ID match, sending hash: 56F3FD843F7AE959A8409E0AE7C067A0E862A6FAA7A22BAD147EE90EE5992BD7
+[Exchanger Client] DEBUG  : Receiving file size and origin
+[Exchanger Client] DEBUG  : Origin get: 0:127.0.0.1:48900:0
+[Exchanger Client] DEBUG  : Valid filesize, notifying server: 15
+[Exchanger Client] DEBUG  : Streaming
+[Exchanger Client] INFO   : Finished streaming, storing local file
+[File] DEBUG  : Hashing file: file0.txt
+[Exchanger Client] DEBUG  : Running finished listener for hash: 56F3FD843F7AE959A8409E0AE7C067A0E862A6FAA7A22BAD147EE90EE5992BD7
+[Peer] INFO   : Registered hash: file0.txt
+[File] DEBUG  : Hashing file: file0.txt
+[Folder] DEBUG  : File modified: file0.txt : 15
+[Peer] INFO   : Deregistered hash: 56F3FD843F7AE959A8409E0AE7C067A0E862A6FAA7A22BAD147EE90EE5992BD7
+[Peer] INFO   : Registered hash: file0.txt
 
- Client-3 > search dup
-[indexRPCParse] INFO   : Searching server file index for: dup
-Hash: 395A71419DADACF6653548C449A207536831AF86ECF265E2067E0377A14A447F
-Added on 05/03/2022 22:59:28
-        Name: dup.txt
-        Peers: 3
  Client-3 > q
 [Console] INFO   : Exiting
+[Folder] DEBUG  : Stopped watching path for changes
 [Folder] DEBUG  : Stopped watching path for changes
 [Exchanger] DEBUG  : stopped receiving peer requests
 [Indexer] INFO   : Stopping Client

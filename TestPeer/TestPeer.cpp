@@ -36,9 +36,9 @@ std::mt19937 rng(dev());
 std::uniform_int_distribution<std::mt19937::result_type> rndStr(0, testStrs.size() - 1);
 std::uniform_int_distribution<std::mt19937::result_type> rndID(10000, 20000);
 std::uniform_int_distribution<std::mt19937::result_type> rndBool(0, 1);
-std::uniform_int_distribution<std::mt19937::result_type> rndDel(0, 5);
+std::uniform_int_distribution<std::mt19937::result_type> rndDel(0, 3);
 std::uniform_int_distribution<std::mt19937::result_type> rndEdit(0, 20);
-std::uniform_int_distribution<std::mt19937::result_type> rndWait(200, 1000);
+std::uniform_int_distribution<std::mt19937::result_type> rndWait(500, 1500);
 
 void registerFile(string fileName, Index::entryHash_t hash, Index::origin_t origin) {
 	bool registered = _indexer->registry(fileName, hash, origin); // TODO: version number
@@ -223,7 +223,7 @@ int main(int argc, char *argv[]) {
 	TCLAP::ValueArg<std::string> dnFldrArg("d", "downloadFolder", "The local folder files should be downloaded to", false, "", "directory", cmd);
 	TCLAP::SwitchArg all2all("a", "all2all", "enable all2all mode", cmd);
 	TCLAP::SwitchArg enabled("e", "enabled", "Whether this client should actively make queries", cmd);
-	TCLAP::ValueArg<time_t> ttrArg("r", "ttr", "Time To Refresh (TTR) in seconds", false, 5, "int", cmd);
+	TCLAP::ValueArg<time_t> ttrArg("r", "ttr", "Time To Refresh (TTR) in seconds, if in pulling mode", false, 5, "int", cmd);
 	TCLAP::SwitchArg pushingArg("s", "pushing", "enable pushing of invalidation calls", cmd);
 	TCLAP::SwitchArg pullingArg("l", "pulling", "enable pulling of invalidation calls", cmd);
 	cmd.parse(argc, argv);
@@ -237,7 +237,7 @@ int main(int argc, char *argv[]) {
 
 	string serverIP = config.server.ip;
 	uint16_t serverPort = config.server.port;
-	uint16_t clientPort = config.port + 1000;
+	uint16_t clientPort = config.port + 100;
 
 	string originFolder = upFldrArg.getValue();
 
@@ -297,7 +297,7 @@ int main(int argc, char *argv[]) {
 	Util::Folder originWatcher(originFolder, [&](Util::File file, Util::File::Status status) {originFolderListener(file, status); });
 	Util::Folder remoteWatcher (remoteFolder, [&](Util::File file, Util::File::Status status) {remoteFolderListener(file, status); });
 
-	int c = 50;
+	int c = 100;
 
 	while (!std::filesystem::exists("start")) {
 		std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -307,14 +307,14 @@ int main(int argc, char *argv[]) {
 		Log.i("Test", "Enabled");
 
 		try {
-			while (indexer.connected() && c > 0) {
+			while (!std::filesystem::exists("finish") && indexer.connected() && c > 0) {
 				float icount = 0;
 
 				std::cout << c << std::endl;
 				std::pair<Index::entryHash_t, float> lst = getRandomListing();
 				Index::entryHash_t h = lst.first;
 
-				std::this_thread::sleep_for(std::chrono::milliseconds(rndWait(rng)));
+				std::this_thread::sleep_for(std::chrono::milliseconds(rndWait(rng)/10));
 
 				if (h != "") {
 					requestFile(h);
@@ -334,7 +334,7 @@ int main(int argc, char *argv[]) {
 				Log.i("Test", "Invalid counted: %f", icount);
 
 				csv << icount << ',';
-				std::this_thread::sleep_for(std::chrono::milliseconds(200));
+				std::this_thread::sleep_for(std::chrono::milliseconds(100));
 			}
 		} catch (const std::exception &e) {
 			Log.e("Test Error", "%s", e.what());

@@ -140,6 +140,8 @@ namespace Index {
 		*/
 		bool connected();
 
+		void refresh();
+
 		/**
 		 * @brief Register file to index server
 		 * @param entryName Name of the file

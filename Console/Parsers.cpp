@@ -28,6 +28,9 @@ bool indexRPCFunc(Index::Indexer *indexer, Exchanger::Exchanger *exchanger, std:
 		for (Index::Entry::searchEntry &item : indexer->search(tokens[1])) {
 			std::cout << item.str().data() << std::endl;
 		}
+	} else if (func == "refresh") {
+		Log.i(ID, "Updating invalid files");
+		indexer->refresh();
 	} else if (func == Index::k_Ping) {
 		Log.i(ID, "Server reponse time: %fms", indexer->ping() / 1000.0);
 	} else if (func == Index::k_Request) {

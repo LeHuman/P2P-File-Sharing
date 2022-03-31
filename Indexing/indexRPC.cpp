@@ -23,7 +23,7 @@
 
 namespace Index {
 
-	static const int64_t timeout = 8000;
+	static const int64_t timeout = 10000;
 
 	Indexer::~Indexer() {
 		if (srv != nullptr) {
@@ -531,6 +531,15 @@ namespace Index {
 			return database->updateTTR(hash, TTR);
 		}
 		return clt->call(k_UpdateTTR, hash, TTR).as<bool>();
+	}
+
+	void Indexer::refresh() {
+		if (isServer)
+			return;
+		EntryResults results = clt->call(k_GetInvalidated, id).as<EntryResults>();
+		for (Index::Entry::searchEntry &r : results) {
+			pullingListener(r);
+		}
 	}
 
 	bool Indexer::registry(string entryName, entryHash_t hash, Index::origin_t origin) { // TODO: disallow zero byte files

@@ -24,7 +24,7 @@ header-includes: |
 **Isaias Rivera**  
 **A20442116**
 
-# P2P File Sharing - Super-peers - Manual
+# P2P File Sharing - Consistency - Manual
 
 ## Note
 
@@ -36,7 +36,7 @@ If this program is only needed to run locally, the *Simple* examples should work
 The typical procedure for using this program is as follows
 
 1. Create valid folders for each client
-2. Move files to folders for each client that want to be shared
+2. Move files to folders for each client's origin folder that want to be shared
 3. Create the static connection config (or use the one provided)
 4. Start at least two clients, using the folders previously created, and where at least one of the clients is a super-peer
 5. On one client, search for file
@@ -50,9 +50,11 @@ A \<int\> just means it should be a number.
 
 ### Client
 
-Usage:
+USAGE:
 
-   Client  [-ah] [--version] [-c \<filePath\>] [-f \<directory\>] [-i \<int\>]
+   Client  [-ahls] [--version] [-c \<filePath\>] [-d \<directory\>] [-i \<int\>]
+           [-r \<int\>] [-u \<directory\>]
+
 
 Where:
 
@@ -62,11 +64,23 @@ Where:
    -c \<filePath\>,  --configFile \<filePath\>
      The config file to use
 
-   -f \<directory\>,  --downloadFolder \<directory\>
-     The local folder files should be uploaded and downloaded to
+   -u \<directory\>,  --uploadFolder \<directory\>
+     The local folder files should be uploaded from
+
+   -d \<directory\>,  --downloadFolder \<directory\>
+     The local folder files should be downloaded to
+
+   -r \<int\>,  --ttr \<int\>
+     Time To Refresh (TTR) in seconds, if in pulling mode
 
    -a,  --all2all
      enable all2all mode
+
+   -s,  --pushing
+     enable pushing of invalidation calls
+
+   -l,  --pulling
+     enable pulling of invalidation calls
 
 #### Example
 
@@ -74,7 +88,7 @@ Where:
 
 \mbox{}
 
-`.\Client.exe -i 0 -c "test_config.json" -f "watchFolder"`
+`.\Client.exe -i 0 -s -c "test_config.json" -u "watchFolder" -d "downloadfolder"`
 
 ## Using the Interactive Console
 
@@ -84,6 +98,8 @@ The following options are allowed when using the client.
 
 - `ping`
   - Ping a client's superpeer's indexing server to check it's response time
+- `refresh`
+  - If in pulling mode, this command forces a refresh on all invalid files
 - `list`
   - List all the files available on the network, meaning, show all the files we can either download or already have
 - `search [query]`
@@ -96,7 +112,9 @@ The following options are allowed when using the client.
 - `q` or `quit` or `exit`
   - Stop the interactive console, this will close the client
 
-Remember, to add or remove files for sharing. Simply delete or add them to your folder that you initially created for the client.
+Remember, to add or remove files for sharing. Simply delete or add them to your origin folder that you initially created for the client.
+
+\newpage
 
 ## Overall Example
 
@@ -112,36 +130,18 @@ The config file for this is included.
 
 ### Initial setup
 
-Here we can see where the directories are, relative to the client program.
-
-\includegraphics[width=\textwidth]{foldersetup.png}
-
-\newpage
-
-And here we can see the files in each directory
-
-\includegraphics[width=\textwidth]{filesetup.png}
-
-And just as a tip, you can shift right click on Windows in the same directory as the program to more easily open a terminal.
-
-\newpage
-
-### Start Programs
-
-Here we can see the commands are setup to be run.
+Here we can see the terminal is split into four for each peer. The folders relative to the app. And the files that are in each origin folder (Only file0 is shown open but all the other files also have unique data).
 
 \includegraphics[width=\textwidth]{initsetup.png}
 
-`.\Client.exe -i 0 -c test_config_simple.json` start super-peer with id 0  
-`.\Client.exe -i 1 -c test_config_simple.json` start super-peer with id 1  
-`.\Client.exe -i 2 -c test_config_simple.json` start leaf-node with id 2  
-`.\Client.exe -i 3 -c test_config_simple.json` start leaf-node with id 3  
+`.\Client.exe -i 0 -s` start super-peer with id 0 in push mode  
+`.\Client.exe -i 1 -s` start super-peer with id 1 in push mode  
+`.\Client.exe -i 2 -s` start leaf-node with id 2 in push mode  
+`.\Client.exe -i 3 -s` start leaf-node with id 3 in push mode  
 
-\small
+**NOTE: if no argument is given for the watchfolder it defaults to `XID` where `X` is either `originFolder` and `remoteFolder` and where `ID` is the id of the client.**
 
-**NOTE: if no argument is given for the watchfolder it defaults to `watchfolderID` where `ID` is the id of the client.**
-
-\normalsize
+### Running Program
 
 \includegraphics[width=\textwidth]{start.png}
 
@@ -159,7 +159,7 @@ We run the command `list`
 
 Take notice of the `Hash` associated with each file listed, this is what we use to request a file to download
 
-Lets focus on the file `dup.txt` which has the hash of `395A71419DADACF6653548C449A207536831AF86ECF265E2067E0377A14A447F`
+Lets focus on the file `file0.txt` which has the hash of `56F3FD843F7AE959A8409E0AE7C067A0E862A6FAA7A22BAD147EE90EE5992BD7`
 
 \newpage
 
@@ -167,54 +167,50 @@ Lets focus on the file `dup.txt` which has the hash of `395A71419DADACF6653548C4
 
 Now we need to actually request this file by running the following command from client 3
 
-We run the command `request 395A71419DADACF6653548C449A207536831AF86ECF265E2067E0377A14A447F`
+We run the command `request 56F3FD843F7AE959A8409E0AE7C067A0E862A6FAA7A22BAD147EE90EE5992BD7`
 
-After this runs, we can now see that the file is in the watchfolder for client 3.
+After this runs, we can now see that the file is in the remote folder for client 3.
 
 \includegraphics[width=\textwidth]{requestdup.png}
+
+We can also see that the origin for this file was received by client 3 with the message
+
+`[Exchanger Client] DEBUG  : Origin get: 0:127.0.0.1:48900:0`
 
 \newpage
 
 ### Search for a file
 
-Here we can now see, after searching for `dup` from client 3, that there are now three peers which have the same file.
+Here we can now see, after searching for the term `file` from client 2, that there are now two peers which have the same file.
 
-We run the command `search dup`
+We run the command `search file`
 
 \includegraphics[width=\textwidth]{searchdup.png}
 
 \newpage
 
-### Super-peer listing all files
+### Modify file
 
-Here we can see super-peer 0 listing all the available files
-
-We run the command `list`
+Here we can see super-peer 0 propagated an invalidation after modifying it's file which caused peer 3 to re-request the file from peer 0.
 
 \includegraphics[width=\textwidth]{superlist.png}
 
+note that the file open is not the original file, it is the file located in peer 3's remote folder
+
 \newpage
 
-### Super-peer requesting a file
+### Search for modified file
 
-Here we can see super-peer 1 request the file `2.txt` using it's appropriate hash
+Here we can now see, after searching for the term `file0` from client 1, that there are still two peers which have the same file.
 
-We run the command `request 8C8C5354325CFD52914A7B36D8A28695F5DEDCBBABEE7C13BE2E02B0CAEF5A6D`
+We run the command `search file0`
 
-\includegraphics[width=\textwidth]{superrequest.png}
-
-After this runs, we can also now see that the file is in the watchfolder for client 1.
+\includegraphics[width=\textwidth]{searchmod.png}
 
 \newpage
 
 ### Closing
 
-We now can close all clients with `q`.
+We now can close all clients with `q` and we are done.
 
 \includegraphics[width=\textwidth]{closingtime.png}
-
-\newpage
-
-Here, everything has now closed and we are done.
-
-\includegraphics[width=\textwidth]{finishedG.png}
